@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+} 
+
+/* Toast Styles */
+.toast-dark [data-sonner-toast] {
+  background: #2D3748 !important;
+  border: 1px solid #4A5568 !important;
+  color: white !important;
+}
+
+.toast-dark [data-sonner-toast][data-type="error"] {
+  background: #742A2A !important;
+  border: 1px solid #9B2C2C !important;
+}
+
+.toast-dark [data-sonner-toast][data-type="success"] {
+  background: #22543D !important;
+  border: 1px solid #276749 !important;
+}
+
+/* Ensure toast text is always visible */
+.toast-dark [data-sonner-toast] [data-description],
+.toast-dark [data-sonner-toast] [data-title] {
+  color: white !important;
+} 
