@@ -3,6 +3,7 @@ name = "credgem-server"
 version = "0.1.0"
 description = "server for credgem credit balance system"
 authors = ["Your Name <your.email@example.com>"]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.9"

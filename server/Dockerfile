@@ -13,7 +13,7 @@ COPY pyproject.toml .
 COPY poetry.lock .
 
 RUN poetry config virtualenvs.create false
-RUN poetry install --no-dev
+RUN poetry install --without dev
 
 COPY ./src /app/src
 COPY ./scripts /app/scripts
