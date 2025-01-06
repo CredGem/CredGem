@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     # API Configuration
     PROJECT_NAME: str = "CredGem API"
     VERSION: str = "1.0.0"
-    API_V1_STR: str = "/api"
+    API_V1_STR: str = "/api/v1"
 
     # Server Configuration
     PORT: str = "8000"
