@@ -95,6 +95,7 @@ async def load_seed_data(clear_existing: bool = False):
             session.add_all(balances)
             await session.flush()
 
+
 async def main():
     parser = argparse.ArgumentParser(description="Load seed data into MongoDB")
     parser.add_argument(

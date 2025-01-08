@@ -23,6 +23,7 @@ async def get_transaction(transaction_id: str) -> TransactionResponse:
 async def list_transactions(
     wallet_id: Optional[str],
     credit_type_id: Optional[str],
+    external_transaction_id: Optional[str],
     context: Dict[str, str],
     pagination: PaginationRequest,
     date_range: DateTimeRange,
@@ -33,6 +34,7 @@ async def list_transactions(
             session=session,
             wallet_id=wallet_id,
             credit_type_id=credit_type_id,
+            external_transaction_id=external_transaction_id,
             pagination=pagination,
             context=context,
             date_range=date_range,
