@@ -1,10 +1,28 @@
 [tool.poetry]
 name = "credgem-sdk"
 version = "0.1.0"
-description = "Python SDK for CredGem API"
-authors = ["CredGem"]
+description = "Python SDK for CredGem API - A powerful credit management system"
+authors = ["CredGem <support@credgem.com>"]
 readme = "README.md"
 packages = [{include = "credgem"}]
+license = "MIT"
+homepage = "https://credgem.com"
+repository = "https://github.com/CredGem/CredGem"
+documentation = "https://docs.credgem.com"
+keywords = ["credits", "wallet", "payments", "virtual-currency"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 
 [tool.poetry.dependencies]
 python = "^3.8"
