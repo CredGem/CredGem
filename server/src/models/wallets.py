@@ -2,10 +2,10 @@ from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel
+from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy import String, inspect
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Enum as SQLAlchemyEnum
 
 from src.models.balances import BalanceDBModel, BalanceResponse
 from src.models.base import DBModel, DBModelResponse, PaginatedResponse
@@ -21,7 +21,6 @@ class WalletResponse(DBModelResponse):
     context: dict
     balances: List[BalanceResponse]
     status: WalletStatus
-
 
 
 class Wallet(DBModel):
