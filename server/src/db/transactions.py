@@ -21,7 +21,7 @@ async def create_transaction(
     wallet_id: str,
     transaction_request: TransactionRequestBase,
 ) -> TransactionDBModel:
-    idempotency_key = transaction_request.idempotency_key or str(uuid4())
+    external_transaction_id = transaction_request.external_transaction_id or str(uuid4())
     hold_status = None
     if transaction_request.type == TransactionType.HOLD:
         hold_status = HoldStatus.HELD
@@ -29,7 +29,7 @@ async def create_transaction(
     transaction = TransactionDBModel(
         id=str(uuid4()),
         type=transaction_request.type,
-        idempotency_key=idempotency_key,
+        external_transaction_id=external_transaction_id,
         wallet_id=wallet_id,
         credit_type_id=transaction_request.credit_type_id,
         issuer=transaction_request.issuer,
@@ -87,6 +87,7 @@ async def list_transactions(
     session: AsyncSession,
     wallet_id: Optional[str],
     credit_type_id: Optional[str],
+    external_transaction_id: Optional[str],
     pagination: PaginationRequest,
     context: Dict[str, str],
     date_range: DateTimeRange,
@@ -97,6 +98,8 @@ async def list_transactions(
         query = query.where(TransactionDBModel.wallet_id == wallet_id)
     if credit_type_id:
         query = query.where(TransactionDBModel.credit_type_id == credit_type_id)
+    if external_transaction_id:
+        query = query.where(TransactionDBModel.external_transaction_id == external_transaction_id)
     if context:
         for key, value in context.items():
             query = query.where(TransactionDBModel.context[key].as_string() == value)
