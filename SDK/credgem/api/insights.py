@@ -1,5 +1,4 @@
 from typing import Dict, List, Optional
-from decimal import Decimal
 from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel

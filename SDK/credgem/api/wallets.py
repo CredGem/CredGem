@@ -26,7 +26,6 @@ class BalanceResponse(BaseModel):
 
 class WalletBase(BaseModel):
     name: str
-    description: Optional[str] = None
     context: dict = {}
 
 
@@ -55,9 +54,9 @@ class PaginatedWalletResponse(BaseModel):
 
 
 class WalletsAPI(BaseAPI):
-    async def create(self, name: str, description: Optional[str] = None, context: dict = {}) -> WalletResponse:
+    async def create(self, name: str, context: dict = {}) -> WalletResponse:
         """Create a new wallet"""
-        data = CreateWalletRequest(name=name, description=description, context=context).model_dump()
+        data = CreateWalletRequest(name=name, context=context).model_dump()
         return await self._post("/wallets", json=data, response_model=WalletResponse)
 
     async def get(self, wallet_id: str) -> WalletResponse:
@@ -65,11 +64,15 @@ class WalletsAPI(BaseAPI):
         return await self._get(f"/wallets/{wallet_id}", response_model=WalletResponse)
 
     async def update(
-        self, wallet_id: str, name: Optional[str] = None, context: Optional[dict] = None
+        self, wallet_id: str, name: str | None = None, context: dict | None = None
     ) -> WalletResponse:
         """Update a wallet"""
-        data = UpdateWalletRequest(name=name, context=context).model_dump(exclude_none=True)
-        return await self._put(f"/wallets/{wallet_id}", json=data, response_model=WalletResponse)
+        data = {}
+        if name is not None:
+            data["name"] = name
+        if context is not None:
+            data["context"] = context
+        return await self._post(f"/wallets/{wallet_id}", json=data, response_model=WalletResponse)
 
     async def list(
         self, page: int = 1, page_size: int = 50

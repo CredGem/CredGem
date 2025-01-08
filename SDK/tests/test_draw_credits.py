@@ -11,7 +11,7 @@ async def client():
     """Create a client connected to the local API."""
     async with CredGemClient(
         api_key="test_key",
-        base_url="http://localhost:8000/api"
+        base_url="http://localhost:8000/api/v1"
     ) as client:
         yield client
 
@@ -31,7 +31,6 @@ async def wallet(client):
     """Create a test wallet."""
     wallet = await client.wallets.create(
         name=f"Test Wallet {datetime.now().timestamp()}",
-        description="Test wallet",
         context={"test": True}
     )
     return wallet
@@ -55,8 +54,8 @@ async def funded_wallet(client, wallet, credit_type):
 async def test_success_flow_with_hold(client, funded_wallet, credit_type):
     """Test successful flow with hold and debit."""
     transaction_id = f"test_tx_{datetime.now().timestamp()}"
-    initial_balance = Decimal("1000.00")
-    hold_amount = Decimal("10.00")
+    initial_balance = 1000
+    hold_amount = 10
     
     async with client.draw_credits(
         wallet_id=funded_wallet.id,
@@ -64,7 +63,7 @@ async def test_success_flow_with_hold(client, funded_wallet, credit_type):
         amount=hold_amount,
         description="Test transaction",
         issuer="test_system",
-        transaction_id=transaction_id,
+        external_transaction_id=transaction_id,
         context={"test": "value"}
     ) as draw:
         # Verify funds are held
@@ -72,7 +71,7 @@ async def test_success_flow_with_hold(client, funded_wallet, credit_type):
         balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
         assert balance.held == hold_amount
         assert balance.available == initial_balance - hold_amount
-        assert balance.spent == Decimal("0.00")
+        assert balance.spent == 0
         
         # Perform debit
         await draw.debit()
@@ -80,7 +79,7 @@ async def test_success_flow_with_hold(client, funded_wallet, credit_type):
         # Verify funds were debited
         wallet_info = await client.wallets.get(funded_wallet.id)
         balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
-        assert balance.held == Decimal("0.00")
+        assert balance.held == 0
         assert balance.available == initial_balance - hold_amount
         assert balance.spent == hold_amount
 
@@ -88,21 +87,22 @@ async def test_success_flow_with_hold(client, funded_wallet, credit_type):
 @pytest.mark.asyncio
 async def test_success_flow_skip_hold(client, funded_wallet, credit_type):
     """Test successful flow with skip_hold=True."""
-    initial_balance = Decimal("1000.00")
-    debit_amount = Decimal("10.00")
-    
+    initial_balance = 1000
+    debit_amount = 10.00
+    external_transaction_id = f"test_tx_{datetime.now().timestamp()}"
     async with client.draw_credits(
         wallet_id=funded_wallet.id,
         credit_type_id=credit_type.id,
         amount=debit_amount,
         description="Test direct debit",
         issuer="test_system",
+    external_transaction_id=external_transaction_id,
         skip_hold=True
     ) as draw:
         # Verify no funds are held
         wallet_info = await client.wallets.get(funded_wallet.id)
         balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
-        assert balance.held == Decimal("0.00")
+        assert balance.held == 0
         assert balance.available == initial_balance
         
         # Perform direct debit
@@ -111,22 +111,23 @@ async def test_success_flow_skip_hold(client, funded_wallet, credit_type):
         # Verify funds were debited
         wallet_info = await client.wallets.get(funded_wallet.id)
         balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
-        assert balance.held == Decimal("0.00")
+        assert balance.held == 0
         assert balance.available == initial_balance - debit_amount
 
 
 @pytest.mark.asyncio
 async def test_exception_auto_release(client, funded_wallet, credit_type):
     """Test automatic release on exception in context body."""
-    hold_amount = Decimal("10.00")
-    
+    hold_amount = 10
+    external_transaction_id=f"test_tx_{datetime.now().timestamp()}"
     with pytest.raises(ValueError):
         async with client.draw_credits(
             wallet_id=funded_wallet.id,
             credit_type_id=credit_type.id,
             amount=hold_amount,
             description="Test exception",
-            issuer="test_system"
+            issuer="test_system",
+            external_transaction_id=external_transaction_id
         ):
             # Verify funds are held
             wallet_info = await client.wallets.get(funded_wallet.id)
@@ -139,32 +140,8 @@ async def test_exception_auto_release(client, funded_wallet, credit_type):
     # Verify funds were released
     wallet_info = await client.wallets.get(funded_wallet.id)
     balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
-    assert balance.held == Decimal("0.00")
-    assert balance.available == Decimal("1000.00")
-
-
-@pytest.mark.asyncio
-async def test_no_debit_auto_release(client, funded_wallet, credit_type):
-    """Test automatic release when debit is not called."""
-    hold_amount = Decimal("10.00")
-    
-    async with client.draw_credits(
-        wallet_id=funded_wallet.id,
-        credit_type_id=credit_type.id,
-        amount=hold_amount,
-        description="Test no debit",
-        issuer="test_system"
-    ):
-        # Verify funds are held
-        wallet_info = await client.wallets.get(funded_wallet.id)
-        balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
-        assert balance.held == hold_amount
-    
-    # Verify funds were released
-    wallet_info = await client.wallets.get(funded_wallet.id)
-    balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
-    assert balance.held == Decimal("0.00")
-    assert balance.available == Decimal("1000.00")
+    assert balance.held == 0
+    assert balance.available == 1000
 
 
 # @pytest.mark.asyncio

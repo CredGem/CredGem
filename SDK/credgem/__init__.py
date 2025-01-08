@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import Dict, Optional
 
 import httpx
@@ -57,10 +56,10 @@ class CredGemClient:
         self,
         wallet_id: str,
         credit_type_id: str,
-        amount: Decimal,
+        amount: float,
         description: str = "",
         issuer: str = "",
-        transaction_id: Optional[str] = None,
+        external_transaction_id: Optional[str] = None,
         context: Optional[Dict] = None,
         skip_hold: bool = False
     ) -> DrawCredits:
@@ -72,7 +71,7 @@ class CredGemClient:
             amount: The amount of credits to hold/debit
             description: A description of the transaction
             issuer: The issuer of the transaction
-            transaction_id: Optional transaction ID for idempotency
+            external_transaction_id: Optional transaction ID for idempotency
             context: Optional context data for the transaction
             skip_hold: Whether to skip the hold step and debit directly
         
@@ -86,7 +85,7 @@ class CredGemClient:
             amount=amount,
             description=description,
             issuer=issuer,
-            transaction_id=transaction_id,
+            external_transaction_id=external_transaction_id,
             context=context,
             skip_hold=skip_hold
         ) 

@@ -1,7 +1,6 @@
 import uuid
 import logging
 from typing import Optional, Dict, Any, Tuple, Awaitable
-from decimal import Decimal
 
 from httpx import HTTPStatusError, HTTPError
 
@@ -27,10 +26,10 @@ class DrawCredits:
         client,
         wallet_id: str,
         credit_type_id: str,
-        amount: Optional[Decimal] = None,
+        amount: Optional[float] = None,
         description: str = "",
         issuer: str = "",
-        transaction_id: Optional[str] = None,
+        external_transaction_id: Optional[str] = None,
         context: Optional[Dict] = None,
         skip_hold: bool = False
     ):
@@ -53,7 +52,7 @@ class DrawCredits:
         self.amount = amount
         self.description = description
         self.issuer = issuer
-        self.transaction_id = transaction_id
+        self.external_transaction_id = external_transaction_id
         self.context = context or {}
         self.skip_hold = skip_hold
         
@@ -72,7 +71,7 @@ class DrawCredits:
                 # 409 means the operation was already completed
                 # Just return success without the response since we get an error message
                 return True, None
-            elif e.response.status_code == 422:
+            elif e.response.status_code == 402:
                 # 422 means insufficient credits
                 raise InsufficientCreditsError("Insufficient credits available")
             else:
@@ -99,15 +98,15 @@ class DrawCredits:
                 credit_type_id=self.credit_type_id,
                 description=self.description,
                 issuer=self.issuer,
-                transaction_id=self.transaction_id,
-                idempotency_key=f"hold_{self.transaction_id}",
+                external_transaction_id=f"hold_{self.external_transaction_id}",
+                # idempotency_key=f"hold_{self.transaction_id}",
                 context=self.context
             )
         )
         if success and response:
             self.hold_id = response.id
     
-    async def debit(self, amount: Optional[Decimal] = None, context: Optional[Dict] = None):
+    async def debit(self, amount: Optional[float] = None, context: Optional[Dict] = None):
         """Debit credits from the wallet.
         
         Args:
@@ -131,8 +130,7 @@ class DrawCredits:
                 description=self.description,
                 issuer=self.issuer,
                 hold_transaction_id=self.hold_id,
-                transaction_id=self.transaction_id,
-                idempotency_key=f"debit_{self.transaction_id}",
+                external_transaction_id=f"debit_{self.external_transaction_id}",
                 context=debit_context
             )
         )
@@ -160,8 +158,7 @@ class DrawCredits:
                 credit_type_id=self.credit_type_id,
                 description=self.description,
                 issuer=self.issuer,
-                transaction_id=self.transaction_id,
-                idempotency_key=f"release_{self.transaction_id}",
+                external_transaction_id=f"release_{self.external_transaction_id}",
                 context=release_context
             )
         )
