@@ -244,8 +244,60 @@ class TestTransactions:
         wallet_data = wallet_response.json()
         balance = self.find_balance(wallet_data["balances"], credit_type_id)
         assert balance is not None
-        assert balance.get("available") == 50
+        assert balance.get("available") == 80
         assert balance.get("spent") == 20
+        assert balance.get("held") == 0
+
+    async def test_debit_with_hold_same_amount(self, client: AsyncClient):
+        wallet_id, credit_type_id = await self.setup_wallet_and_credit_type(client)
+        credit_request = DepositTransactionRequest(
+            credit_type_id=credit_type_id,
+            description="Initial credit",
+            payload=DepositTransactionRequestPayload(amount=100),
+            issuer="test_user",
+        )
+        await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/deposit",
+            json=credit_request.model_dump(),
+        )
+        hold_amount = 10
+
+        # Create a hold transaction
+        hold_request = HoldTransactionRequest(
+            credit_type_id=credit_type_id,
+            description="Test hold transaction",
+            payload=HoldTransactionRequestPayload(amount=hold_amount),
+            issuer="test_user",
+        )
+        hold_response = await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/hold",
+            json=hold_request.model_dump(),
+        )
+        assert hold_response.status_code == 200
+        hold_data = hold_response.json()
+
+        # Create a debit transaction
+        debit_request = DebitTransactionRequest(
+            credit_type_id=credit_type_id,
+            description="Test debit transaction",
+            payload=DebitTransactionRequestPayload(
+                amount=hold_amount, hold_transaction_id=hold_data["id"]
+            ),
+            issuer="test_user",
+        )
+        response = await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/debit",
+            json=debit_request.model_dump(),
+        )
+        assert response.status_code == 200
+
+        wallet_response = await client.get(f"{self.base_url}/wallets/{wallet_id}")
+        assert wallet_response.status_code == 200
+        wallet_data = wallet_response.json()
+        balance = self.find_balance(wallet_data["balances"], credit_type_id)
+        assert balance is not None
+        assert balance.get("available") == 90
+        assert balance.get("spent") == 10
         assert balance.get("held") == 0
 
     async def test_debit_with_hold_not_enough_held(self, client: AsyncClient):

@@ -21,7 +21,9 @@ async def create_transaction(
     wallet_id: str,
     transaction_request: TransactionRequestBase,
 ) -> TransactionDBModel:
-    external_transaction_id = transaction_request.external_transaction_id or str(uuid4())
+    external_transaction_id = transaction_request.external_transaction_id or str(
+        uuid4()
+    )
     hold_status = None
     if transaction_request.type == TransactionType.HOLD:
         hold_status = HoldStatus.HELD
@@ -99,7 +101,9 @@ async def list_transactions(
     if credit_type_id:
         query = query.where(TransactionDBModel.credit_type_id == credit_type_id)
     if external_transaction_id:
-        query = query.where(TransactionDBModel.external_transaction_id == external_transaction_id)
+        query = query.where(
+            TransactionDBModel.external_transaction_id == external_transaction_id
+        )
     if context:
         for key, value in context.items():
             query = query.where(TransactionDBModel.context[key].as_string() == value)

@@ -169,18 +169,31 @@ async def _debit_transaction_handler(
     session = session_ctx.session
     hold_transaction_id = pending_transaction.payload["hold_transaction_id"]
     hold_transaction_payload = None
+    held_amount = 0
+    remaining_held_amount = 0
 
     if hold_transaction_id:
         hold_transaction_payload = await _get_and_validate_hold(
             transaction_request=pending_transaction, session=session
         )
+        held_amount = hold_transaction_payload.amount
+        remaining_held_amount = held_amount - pending_transaction.payload["amount"]
+
+    # Calculate debit amount based on hold status
+    debit_amount = (
+        -remaining_held_amount
+        if hold_transaction_payload
+        else pending_transaction.payload["amount"]
+    )
+    spent = pending_transaction.payload["amount"]
 
     updated_balance = await balances_db.debit_balance(
         session=session,
         wallet_id=pending_transaction.wallet_id,
         credit_type_id=pending_transaction.credit_type_id,
-        amount=pending_transaction.payload["amount"],
-        held_amount=hold_transaction_payload.amount if hold_transaction_payload else 0,
+        amount=debit_amount,
+        held_amount=held_amount,
+        spent=spent,
     )
     if not updated_balance:
         raise HTTPException(status_code=404, detail=BALANCE_NOT_FOUND_ERROR)

@@ -42,7 +42,9 @@ class TransactionRequestBase(BaseModel):
     type: TransactionType
     credit_type_id: str
     description: str
-    external_transaction_id: Optional[str] = Field(default=None, description="External transaction id")
+    external_transaction_id: Optional[str] = Field(
+        default=None, description="External transaction id"
+    )
     payload: Any
     issuer: str
     context: Optional[Dict[str, Any]] = Field(
@@ -136,7 +138,9 @@ class TransactionDBModel(DBModel):
     __tablename__ = "transactions"
 
     type: Mapped[TransactionType] = mapped_column(SQLEnum(TransactionType))
-    external_transaction_id: Mapped[Optional[str]] = mapped_column(String, index=True, unique=True, nullable=True)
+    external_transaction_id: Mapped[Optional[str]] = mapped_column(
+        String, index=True, unique=True, nullable=True
+    )
     wallet_id: Mapped[str] = mapped_column(String, index=True)
     credit_type_id: Mapped[str] = mapped_column(String, index=True)
     issuer: Mapped[str] = mapped_column(String)

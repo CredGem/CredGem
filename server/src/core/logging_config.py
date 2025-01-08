@@ -28,7 +28,4 @@ def setup_logging():
     logging.getLogger("redis").setLevel(logging.INFO)
 
     if log_level != "DEBUG":
-        logging.getLogger('sqlalchemy.engine.Engine').disabled = True
-        
-
-    
+        logging.getLogger("sqlalchemy.engine.Engine").disabled = True

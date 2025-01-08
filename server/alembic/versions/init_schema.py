@@ -116,10 +116,20 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(["wallet_id"], ["wallets.id"], name="transactions_wallet_id_fkey"),
-        sa.ForeignKeyConstraint(["credit_type_id"], ["credit_types.id"], name="transactions_credit_type_id_fkey"),
+        sa.ForeignKeyConstraint(
+            ["wallet_id"], ["wallets.id"], name="transactions_wallet_id_fkey"
+        ),
+        sa.ForeignKeyConstraint(
+            ["credit_type_id"],
+            ["credit_types.id"],
+            name="transactions_credit_type_id_fkey",
+        ),
         sa.Index("ix_transactions_credit_type_id", "credit_type_id", unique=False),
-        sa.Index("ix_transactions_external_transaction_id", "external_transaction_id", unique=True),
+        sa.Index(
+            "ix_transactions_external_transaction_id",
+            "external_transaction_id",
+            unique=True,
+        ),
         sa.Index("ix_transactions_wallet_id", "wallet_id", unique=False),
     )
 
@@ -146,11 +156,20 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(["wallet_id"], ["wallets.id"], name="balances_wallet_id_fkey"),
-        sa.ForeignKeyConstraint(["credit_type_id"], ["credit_types.id"], name="balances_credit_type_id_fkey"),
+        sa.ForeignKeyConstraint(
+            ["wallet_id"], ["wallets.id"], name="balances_wallet_id_fkey"
+        ),
+        sa.ForeignKeyConstraint(
+            ["credit_type_id"], ["credit_types.id"], name="balances_credit_type_id_fkey"
+        ),
         sa.Index("ix_balances_credit_type_id", "credit_type_id", unique=False),
         sa.Index("ix_balances_wallet_id", "wallet_id", unique=False),
-        sa.Index("ix_balances_wallet_credit_composite", "wallet_id", "credit_type_id", unique=True),
+        sa.Index(
+            "ix_balances_wallet_credit_composite",
+            "wallet_id",
+            "credit_type_id",
+            unique=True,
+        ),
     )
 
 
@@ -164,5 +183,5 @@ def downgrade() -> None:
     # Drop enum types
     op.execute("DROP TYPE IF EXISTS transactiontype")
     op.execute("DROP TYPE IF EXISTS holdstatus")
-    op.execute("DROP TYPE IF EXISTS transactionstatus") 
+    op.execute("DROP TYPE IF EXISTS transactionstatus")
     op.execute("DROP TYPE IF EXISTS walletstatus")
