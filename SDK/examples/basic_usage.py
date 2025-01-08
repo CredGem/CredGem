@@ -5,10 +5,13 @@ from credgem import CredGemClient
 
 
 async def main():
-    # Initialize the client
+    # Initialize the client with specific API URL
+    # For production, use: https://api.credgem.com
+    # For staging: https://api.staging.credgem.com
+    # For local development: http://localhost:8000
     async with CredGemClient(
         api_key="your-api-key",
-        base_url="http://localhost:8000"  # Change to your server URL
+        base_url="http://localhost:8000"  # Explicitly set the API URL
     ) as client:
         # Create a credit type
         credit_type = await client.credit_types.create(
