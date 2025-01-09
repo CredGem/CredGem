@@ -21,9 +21,6 @@ async def create_transaction(
     wallet_id: str,
     transaction_request: TransactionRequestBase,
 ) -> TransactionDBModel:
-    external_transaction_id = transaction_request.external_transaction_id or str(
-        uuid4()
-    )
     hold_status = None
     if transaction_request.type == TransactionType.HOLD:
         hold_status = HoldStatus.HELD
@@ -31,7 +28,7 @@ async def create_transaction(
     transaction = TransactionDBModel(
         id=str(uuid4()),
         type=transaction_request.type,
-        external_transaction_id=external_transaction_id,
+        external_transaction_id=transaction_request.external_transaction_id,
         wallet_id=wallet_id,
         credit_type_id=transaction_request.credit_type_id,
         issuer=transaction_request.issuer,

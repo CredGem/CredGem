@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import pytest
+from fastapi import status
 from httpx import AsyncClient
 
 from src.core.settings import settings
@@ -11,6 +12,7 @@ from src.models.transactions import (
     DebitTransactionRequestPayload,
     DepositTransactionRequest,
     DepositTransactionRequestPayload,
+    HoldStatus,
     HoldTransactionRequest,
     HoldTransactionRequestPayload,
     ReleaseTransactionRequest,
@@ -18,8 +20,11 @@ from src.models.transactions import (
 )
 from src.models.wallets import CreateWalletRequest
 from src.utils.constants import (
+    BALANCE_NOT_FOUND_ERROR,
     DUPLICATE_TRANSACTION_ERROR,
     HOLD_AMOUNT_EXCEEDS_ERROR,
+    HOLD_TRANSACTION_NOT_FOUND_ERROR,
+    HOLD_TRANSACTION_NOT_HELD_ERROR,
     INSUFFICIENT_BALANCE_ERROR,
 )
 
@@ -74,17 +79,34 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/deposit",
             json=transaction_request.model_dump(),
         )
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         # Check the wallet balance
 
         wallet_response = await client.get(f"{self.base_url}/wallets/{wallet_id}")
-        assert wallet_response.status_code == 200
+        assert wallet_response.status_code == status.HTTP_200_OK
         wallet_data = wallet_response.json()
         balance = self.find_balance(wallet_data["balances"], credit_type_id)
         assert balance is not None
         assert balance.get("available") == 100
         assert balance.get("spent") == 0
         assert balance.get("held") == 0
+
+    async def test_debit_nonexistent_balance(self, client: AsyncClient):
+        wallet_id, credit_type_id = await self.setup_wallet_and_credit_type(client)
+
+        debit_request = DebitTransactionRequest(
+            credit_type_id=credit_type_id,
+            description="Test debit transaction",
+            payload=DebitTransactionRequestPayload(amount=100),
+            issuer="test_user",
+        )
+
+        response = await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/debit",
+            json=debit_request.model_dump(),
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json()["detail"] == BALANCE_NOT_FOUND_ERROR
 
     async def test_debit_transaction(self, client: AsyncClient):
         wallet_id, credit_type_id = await self.setup_wallet_and_credit_type(client)
@@ -113,11 +135,11 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/debit",
             json=debit_request.model_dump(),
         )
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
 
         # Check the wallet balance
         wallet_response = await client.get(f"{self.base_url}/wallets/{wallet_id}")
-        assert wallet_response.status_code == 200
+        assert wallet_response.status_code == status.HTTP_200_OK
         wallet_data = wallet_response.json()
         balance = self.find_balance(wallet_data["balances"], credit_type_id)
         assert balance is not None
@@ -153,9 +175,25 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/debit",
             json=debit_request.model_dump(),
         )
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_402_PAYMENT_REQUIRED
         data = response.json()
         assert data["detail"] == INSUFFICIENT_BALANCE_ERROR
+
+    async def test_hold_nonexistent_balance(self, client: AsyncClient):
+        wallet_id, credit_type_id = await self.setup_wallet_and_credit_type(client)
+
+        hold_request = HoldTransactionRequest(
+            credit_type_id=credit_type_id,
+            description="Test hold transaction",
+            payload=HoldTransactionRequestPayload(amount=100),
+            issuer="test_user",
+        )
+        response = await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/hold",
+            json=hold_request.model_dump(),
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json()["detail"] == BALANCE_NOT_FOUND_ERROR
 
     async def test_hold_transaction(self, client: AsyncClient):
         wallet_id, credit_type_id = await self.setup_wallet_and_credit_type(client)
@@ -183,11 +221,11 @@ class TestTransactions:
         response = await client.post(
             f"{self.base_url}/wallets/{wallet_id}/hold", json=hold_request.model_dump()
         )
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
 
         # Check the wallet balance
         wallet_response = await client.get(f"{self.base_url}/wallets/{wallet_id}")
-        assert wallet_response.status_code == 200
+        assert wallet_response.status_code == status.HTTP_200_OK
         wallet_data = wallet_response.json()
         balance = self.find_balance(wallet_data["balances"], credit_type_id)
         assert balance is not None
@@ -219,7 +257,8 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/hold",
             json=hold_request.model_dump(),
         )
-        assert hold_response.status_code == 200
+        assert hold_response.status_code == status.HTTP_200_OK
+        assert hold_response.json()["hold_status"] == HoldStatus.HELD.value
         hold_data = hold_response.json()
 
         # Create a debit transaction
@@ -236,11 +275,17 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/debit",
             json=debit_request.model_dump(),
         )
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
+
+        hold_transaction_response = await client.get(
+            f"{self.base_url}/transactions/{hold_data['id']}"
+        )
+        assert hold_transaction_response.status_code == status.HTTP_200_OK
+        assert hold_transaction_response.json()["hold_status"] == HoldStatus.USED.value
 
         # Check the wallet balance
         wallet_response = await client.get(f"{self.base_url}/wallets/{wallet_id}")
-        assert wallet_response.status_code == 200
+        assert wallet_response.status_code == status.HTTP_200_OK
         wallet_data = wallet_response.json()
         balance = self.find_balance(wallet_data["balances"], credit_type_id)
         assert balance is not None
@@ -273,7 +318,7 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/hold",
             json=hold_request.model_dump(),
         )
-        assert hold_response.status_code == 200
+        assert hold_response.status_code == status.HTTP_200_OK
         hold_data = hold_response.json()
 
         # Create a debit transaction
@@ -289,10 +334,10 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/debit",
             json=debit_request.model_dump(),
         )
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
 
         wallet_response = await client.get(f"{self.base_url}/wallets/{wallet_id}")
-        assert wallet_response.status_code == 200
+        assert wallet_response.status_code == status.HTTP_200_OK
         wallet_data = wallet_response.json()
         balance = self.find_balance(wallet_data["balances"], credit_type_id)
         assert balance is not None
@@ -326,7 +371,7 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/hold",
             json=hold_request.model_dump(),
         )
-        assert hold_response.status_code == 200
+        assert hold_response.status_code == status.HTTP_200_OK
         hold_data = hold_response.json()
 
         # Create a debit transaction
@@ -343,8 +388,85 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/debit",
             json=debit_request.model_dump(),
         )
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_402_PAYMENT_REQUIRED
         assert response.json()["detail"] == HOLD_AMOUNT_EXCEEDS_ERROR
+
+    async def test_release_nonexistent_hold(self, client: AsyncClient):
+        wallet_id, credit_type_id = await self.setup_wallet_and_credit_type(client)
+        release_request = ReleaseTransactionRequest(
+            credit_type_id=credit_type_id,
+            description="Test release transaction",
+            payload=ReleaseTransactionRequestPayload(hold_transaction_id=str(uuid4())),
+            issuer="test_user",
+        )
+        response = await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/release",
+            json=release_request.model_dump(),
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json()["detail"] == HOLD_TRANSACTION_NOT_FOUND_ERROR
+
+    async def test_release_transaction_not_held(self, client: AsyncClient):
+        wallet_id, credit_type_id = await self.setup_wallet_and_credit_type(client)
+        # Initial deposit
+        credit_request = DepositTransactionRequest(
+            credit_type_id=credit_type_id,
+            description="Initial credit",
+            payload=DepositTransactionRequestPayload(amount=100),
+            issuer="test_user",
+        )
+        await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/deposit",
+            json=credit_request.model_dump(),
+        )
+
+        # Create a hold transaction
+        hold_request = HoldTransactionRequest(
+            credit_type_id=credit_type_id,
+            description="Test hold transaction",
+            payload=HoldTransactionRequestPayload(amount=30),
+            issuer="test_user",
+        )
+        hold_response = await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/hold",
+            json=hold_request.model_dump(),
+        )
+        assert hold_response.status_code == status.HTTP_200_OK
+        hold_data = hold_response.json()
+        assert hold_data["hold_status"] == HoldStatus.HELD.value
+        hold_id = hold_data["id"]
+
+        # Release the hold
+        release_request = ReleaseTransactionRequest(
+            credit_type_id=credit_type_id,
+            description="Test release transaction",
+            payload=ReleaseTransactionRequestPayload(hold_transaction_id=hold_id),
+            issuer="test_user",
+        )
+        response = await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/release",
+            json=release_request.model_dump(),
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        # Get the hold transaction and verify it's now released
+        hold_response = await client.get(f"{self.base_url}/transactions/{hold_id}")
+        assert hold_response.status_code == status.HTTP_200_OK
+        updated_hold = hold_response.json()
+        assert updated_hold["hold_status"] == HoldStatus.RELEASED.value
+
+        release_request = ReleaseTransactionRequest(
+            credit_type_id=credit_type_id,
+            description="Test release transaction",
+            payload=ReleaseTransactionRequestPayload(hold_transaction_id=hold_id),
+            issuer="test_user",
+        )
+        response = await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/release",
+            json=release_request.model_dump(),
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json()["detail"] == HOLD_TRANSACTION_NOT_HELD_ERROR
 
     async def test_release_transaction(self, client: AsyncClient):
         wallet_id, credit_type_id = await self.setup_wallet_and_credit_type(client)
@@ -385,11 +507,11 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/release",
             json=release_request.model_dump(),
         )
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
 
         # Check the wallet balance
         wallet_response = await client.get(f"{self.base_url}/wallets/{wallet_id}")
-        assert wallet_response.status_code == 200
+        assert wallet_response.status_code == status.HTTP_200_OK
         wallet_data = wallet_response.json()
         balance = self.find_balance(wallet_data["balances"], credit_type_id)
         assert balance is not None
@@ -416,7 +538,22 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/release",
             json=release_request.model_dump(),
         )
-        assert response.status_code == 404
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    async def test_adjust_nonexistent_balance(self, client: AsyncClient):
+        wallet_id, credit_type_id = await self.setup_wallet_and_credit_type(client)
+        adjust_request = AdjustTransactionRequest(
+            credit_type_id=credit_type_id,
+            description="Test adjust transaction",
+            payload=AdjustTransactionRequestPayload(amount=100),
+            issuer="test_user",
+        )
+        response = await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/adjust",
+            json=adjust_request.model_dump(),
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.json()["detail"] == BALANCE_NOT_FOUND_ERROR
 
     @pytest.mark.parametrize("reset_spent,expected_spent", [(True, 0), (False, 50)])
     async def test_adjust_transaction(
@@ -460,11 +597,11 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/adjust",
             json=adjust_request.model_dump(),
         )
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
 
         # Check the wallet balance
         wallet_response = await client.get(f"{self.base_url}/wallets/{wallet_id}")
-        assert wallet_response.status_code == 200
+        assert wallet_response.status_code == status.HTTP_200_OK
         wallet_data = wallet_response.json()
         balance = self.find_balance(wallet_data["balances"], credit_type_id)
         assert balance is not None
@@ -491,14 +628,14 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/deposit",
             json=transaction_request.model_dump(),
         )
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
 
         # Second attempt with same transaction ID should fail
         response = await client.post(
             f"{self.base_url}/wallets/{wallet_id}/deposit",
             json=transaction_request.model_dump(),
         )
-        assert response.status_code == 409
+        assert response.status_code == status.HTTP_409_CONFLICT
         assert response.json()["detail"] == DUPLICATE_TRANSACTION_ERROR
 
         # Try with a different request type but same transaction ID
@@ -514,7 +651,7 @@ class TestTransactions:
             f"{self.base_url}/wallets/{wallet_id}/debit",
             json=debit_request.model_dump(),
         )
-        assert response.status_code == 409
+        assert response.status_code == status.HTTP_409_CONFLICT
         assert response.json()["detail"] == DUPLICATE_TRANSACTION_ERROR
 
     async def test_get_transaction_by_id(self, client: AsyncClient):
@@ -536,5 +673,5 @@ class TestTransactions:
         transaction_response = await client.get(
             f"{self.base_url}/transactions/{transaction_id}"
         )
-        assert transaction_response.status_code == 200
+        assert transaction_response.status_code == status.HTTP_200_OK
         assert transaction_response.json()["id"] == transaction_id
