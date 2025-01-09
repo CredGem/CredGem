@@ -151,12 +151,12 @@ async def test_debit_success(client, funded_wallet, credit_type):
 
 
 @pytest.mark.asyncio
-async def test_debit_insufficient_funds(client, wallet, credit_type):
+async def test_debit_insufficient_funds(client, funded_wallet, credit_type):
     """Test debit with insufficient funds."""
     try:
         await client.transactions.debit(
-            wallet_id=wallet.id,
-            amount=100,
+            wallet_id=funded_wallet.id,
+            amount=200000,
             credit_type_id=credit_type.id,
             description="Test debit",
             issuer="test_system"
@@ -237,25 +237,25 @@ async def test_hold_and_debit(client, funded_wallet, credit_type):
     # Verify final state
     wallet_info = await client.wallets.get(funded_wallet.id)
     balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
-    assert balance.held == Decimal("0.00")
+    assert balance.held == 0
     assert balance.available == initial_balance - hold_amount
     assert balance.spent == hold_amount
 
 
 @pytest.mark.asyncio
-async def test_hold_insufficient_funds(client, wallet, credit_type):
+async def test_hold_insufficient_funds(client, funded_wallet, credit_type):
     """Test hold with insufficient funds."""
     try:
         await client.transactions.hold(
-            wallet_id=wallet.id,
-            amount=100.00,
+            wallet_id=funded_wallet.id,
+            amount=2000,
             credit_type_id=credit_type.id,
             description="Test hold",
             issuer="test_system"
         )
         pytest.fail("Expected insufficient balance error")
     except httpx.HTTPStatusError as e:
-        assert e.response.status_code == 400
+        assert e.response.status_code == 402
         assert "Insufficient balance" in str(e.response.json()["detail"])
 
 
@@ -277,7 +277,7 @@ async def test_debit_with_invalid_hold(client, funded_wallet, credit_type):
 async def test_multiple_holds(client, funded_wallet, credit_type):
     """Test multiple holds on the same wallet."""
     # Create first hold
-    hold1_amount = Decimal("30.00")
+    hold1_amount = 30
     hold1 = await client.transactions.hold(
         wallet_id=funded_wallet.id,
         amount=hold1_amount,
@@ -287,7 +287,7 @@ async def test_multiple_holds(client, funded_wallet, credit_type):
     )
     
     # Create second hold
-    hold2_amount = Decimal("50.00")
+    hold2_amount = 50
     hold2 = await client.transactions.hold(
         wallet_id=funded_wallet.id,
         amount=hold2_amount,

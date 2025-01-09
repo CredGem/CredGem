@@ -72,7 +72,7 @@ class WalletsAPI(BaseAPI):
             data["name"] = name
         if context is not None:
             data["context"] = context
-        return await self._post(f"/wallets/{wallet_id}", json=data, response_model=WalletResponse)
+        return await self._put(f"/wallets/{wallet_id}", json=data, response_model=WalletResponse)
 
     async def list(
         self, page: int = 1, page_size: int = 50

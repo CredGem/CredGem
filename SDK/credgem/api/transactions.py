@@ -116,9 +116,10 @@ class TransactionsAPI(BaseAPI):
             "credit_type_id": credit_type_id,
             "description": description,
             "issuer": issuer,
-            "external_transaction_id": external_transaction_id,
             "context": context
         }
+        if external_transaction_id:
+            payload["external_transaction_id"] = external_transaction_id
         
         # Remove None values
         payload = {k: v for k, v in payload.items() if v is not None}
@@ -148,10 +149,11 @@ class TransactionsAPI(BaseAPI):
             "context": context,
             "payload":{
                 "amount":amount,
-                "hold_transaction_id":hold_transaction_id
             },
             "external_transaction_id": external_transaction_id,
         }
+        if hold_transaction_id:
+            payload["payload"]["hold_transaction_id"] = hold_transaction_id
         
         # Remove None values
         payload = {k: v for k, v in payload.items() if v is not None}
