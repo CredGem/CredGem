@@ -23,13 +23,16 @@ class SubscriptionMode(str, Enum):
 
 
 class ProductStatus(str, Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
 
 
 class SubscriptionStatus(str, Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
+    PENDING = "PENDING"  # Subscription created but not yet started
+    ACTIVE = "ACTIVE"  # Currently active subscription
+    COMPLETED = "COMPLETED"  # Successfully finished/expired
+    CANCELLED = "CANCELLED"  # Terminated before completion
+    FAILED = "FAILED"  # Failed to process/apply
 
 
 # Pydantic models for API responses
@@ -44,6 +47,13 @@ class ProductResponse(DBModelResponse):
     description: str
     status: ProductStatus
     settings: List[ProductSettingsResponse]
+
+
+class ProductSubscriptionResponse(DBModelResponse):
+    product_id: str
+    wallet_id: str
+    status: SubscriptionStatus
+    settings_snapshot: List[Dict]
 
 
 class Product(DBModel):
@@ -81,6 +91,13 @@ class Product(DBModel):
             status=self.status,
             settings=[setting.to_response() for setting in self.settings],
         )
+
+
+class PydanticProductSettings(BaseModel):
+    id: str
+    product_id: str
+    credit_type_id: str
+    credit_amount: float
 
 
 class ProductSettings(DBModel):
@@ -129,7 +146,7 @@ class ProductSubscription(DBModel):
     wallet_id: Mapped[str] = mapped_column(
         String, ForeignKey("wallets.id"), nullable=False
     )
-    settings_snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    settings_snapshot: Mapped[List[dict]] = mapped_column(JSONB, nullable=False)
     status: Mapped[SubscriptionStatus] = mapped_column(
         SQLAlchemyEnum(SubscriptionStatus),
         nullable=False,
@@ -150,12 +167,22 @@ class ProductSubscription(DBModel):
     product: Mapped[Product] = relationship("Product", back_populates="subscriptions")
     wallet: Mapped[Wallet] = relationship("Wallet")
 
+    def to_response(self) -> ProductSubscriptionResponse:
+        return ProductSubscriptionResponse(
+            id=self.id,
+            created_at=self.created_at,
+            updated_at=self.updated_at,
+            product_id=self.product_id,
+            wallet_id=self.wallet_id,
+            status=self.status,
+            settings_snapshot=self.settings_snapshot,
+        )
 
-class ProductSubscriptionResponse(DBModelResponse):
+
+class ProductSubscriptionRequest(BaseModel):
     product_id: str
-    wallet_id: str
-    status: SubscriptionStatus
-    configuration: Dict
+    type: SubscriptionType
+    mode: SubscriptionMode
 
 
 # Request models

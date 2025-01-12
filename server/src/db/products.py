@@ -12,6 +12,10 @@ from src.models.products import (
     Product,
     ProductSettings,
     ProductStatus,
+    ProductSubscription,
+    ProductSubscriptionRequest,
+    PydanticProductSettings,
+    SubscriptionStatus,
     UpdateProductRequest,
 )
 
@@ -46,13 +50,13 @@ async def create_product_settings(
     return settings
 
 
-async def get_product_by_id(db: AsyncSession, product_id: str) -> Product | None:
+async def get_product_by_id(session: AsyncSession, product_id: str) -> Product | None:
     query = (
         select(Product)
         .options(joinedload(Product.settings))
         .where(Product.id == product_id)
     )
-    result = await db.execute(query)
+    result = await session.execute(query)
     return result.unique().scalar_one_or_none()
 
 
@@ -103,3 +107,44 @@ async def delete_product(db: AsyncSession, product_id: str) -> None:
         raise Exception("Product not found")
 
     await db.execute(delete(Product).where(Product.id == product_id))
+
+
+async def get_subscriptions(
+    session: AsyncSession, wallet_id: str
+) -> List[ProductSubscription]:
+    query = select(ProductSubscription).where(
+        ProductSubscription.wallet_id == wallet_id
+    )
+    result = await session.execute(query)
+    return list(result.unique().scalars().all())
+
+
+async def create_product_subscription(
+    session: AsyncSession,
+    wallet_id: str,
+    subscription_request: ProductSubscriptionRequest,
+    settings_snapshot: List[PydanticProductSettings],
+) -> ProductSubscription:
+    subscription = ProductSubscription(
+        id=str(uuid4()),
+        wallet_id=wallet_id,
+        product_id=subscription_request.product_id,
+        status=SubscriptionStatus.PENDING,
+        type=subscription_request.type,
+        mode=subscription_request.mode,
+        settings_snapshot=[setting.model_dump() for setting in settings_snapshot],
+    )
+    session.add(subscription)
+    return subscription
+
+
+async def update_product_subscription_status(
+    session: AsyncSession, subscription_id: str, status: SubscriptionStatus
+) -> ProductSubscription:
+    result = await session.execute(
+        update(ProductSubscription)
+        .where(ProductSubscription.id == subscription_id)
+        .values(status=status)
+        .returning(ProductSubscription)
+    )
+    return result.scalar_one()

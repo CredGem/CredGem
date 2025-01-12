@@ -1,18 +1,28 @@
 import asyncio
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import balances as balances_db
+from src.db import products as products_db
 from src.db import transactions as transactions_db
 from src.db import wallets
 from src.models.base import PaginationRequest
+from src.models.products import (
+    ProductSubscriptionRequest,
+    ProductSubscriptionResponse,
+    PydanticProductSettings,
+    SubscriptionMode,
+    SubscriptionStatus,
+    SubscriptionType,
+)
 from src.models.transactions import (
     AdjustTransactionRequest,
     BalanceSnapshot,
     DebitTransactionRequest,
     DepositTransactionRequest,
+    DepositTransactionRequestPayload,
     HoldStatus,
     HoldTransactionRequest,
     HoldTransactionRequestPayload,
@@ -405,3 +415,84 @@ async def create_adjust_transaction(
         transaction_handler=_adjust_transaction_handler,
     )
     return transaction_result.to_response()
+
+
+async def get_subscriptions(wallet_id: str) -> List[ProductSubscriptionResponse]:
+    async with db_session(read_only=True) as session_ctx:
+        subscriptions = await products_db.get_subscriptions(
+            session=session_ctx.session,
+            wallet_id=wallet_id,
+        )
+    return [subscription.to_response() for subscription in subscriptions]
+
+
+async def subscribe_to_product(
+    wallet_id: str, subscription_request: ProductSubscriptionRequest
+) -> ProductSubscriptionResponse:
+    if subscription_request.type != SubscriptionType.ONE_TIME:
+        raise HTTPException(
+            status_code=400,
+            detail="Only one-time subscriptions are currently supported",
+        )
+
+    if subscription_request.mode != SubscriptionMode.ADD:
+        raise HTTPException(
+            status_code=400, detail="Only add mode is currently supported"
+        )
+
+    async with db_session() as session_ctx:
+        product = await products_db.get_product_by_id(
+            session=session_ctx.session,
+            product_id=subscription_request.product_id,
+        )
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        settings_snapshot = [
+            PydanticProductSettings(
+                id=setting.id,
+                product_id=setting.product_id,
+                credit_type_id=setting.credit_type_id,
+                credit_amount=setting.credit_amount,
+            )
+            for setting in product.settings
+        ]
+
+        subscription = await products_db.create_product_subscription(
+            session=session_ctx.session,
+            wallet_id=wallet_id,
+            subscription_request=subscription_request,
+            settings_snapshot=settings_snapshot,
+        )
+        session_ctx.add_to_refresh([subscription])
+
+    deposit_requests = []
+    for setting in product.settings:
+        deposit_request = DepositTransactionRequest(
+            credit_type_id=setting.credit_type_id,
+            description="Subscription deposit",
+            context={"subscription_id": subscription.id},
+            payload=DepositTransactionRequestPayload(
+                amount=setting.credit_amount,
+            ),
+            issuer=subscription.id,
+        )
+        deposit_requests.append(deposit_request)
+
+    await asyncio.gather(
+        *[
+            create_deposit_transaction(
+                wallet_id=wallet_id, transaction_request=deposit_request
+            )
+            for deposit_request in deposit_requests
+        ]
+    )
+
+    async with db_session() as session_ctx:
+        await products_db.update_product_subscription_status(
+            session=session_ctx.session,
+            subscription_id=subscription.id,
+            status=SubscriptionStatus.COMPLETED,
+        )
+
+    return subscription.to_response()

@@ -57,7 +57,14 @@ def upgrade() -> None:
         sa.Column("wallet_id", sa.String(), nullable=False),
         sa.Column(
             "status",
-            sa.Enum("ACTIVE", "INACTIVE", name="subscriptionstatus"),
+            sa.Enum(
+                "PENDING",
+                "ACTIVE",
+                "COMPLETED",
+                "CANCELLED",
+                "FAILED",
+                name="subscriptionstatus",
+            ),
             nullable=False,
         ),
         sa.Column(

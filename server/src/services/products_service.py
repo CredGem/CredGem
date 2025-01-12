@@ -51,7 +51,7 @@ async def get_products_handler(
 async def get_product_handler(product_id: str) -> ProductResponse:
     async with db_session() as session_ctx:
         product = await products_db.get_product_by_id(
-            db=session_ctx.session, product_id=product_id
+            session=session_ctx.session, product_id=product_id
         )
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
