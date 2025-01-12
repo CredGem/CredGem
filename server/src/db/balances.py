@@ -50,6 +50,7 @@ async def debit_balance(
     credit_type_id: str,
     amount: float,
     held_amount: float,
+    spent: float,
 ) -> BalanceDBModel | None:
     stmt = (
         insert(BalanceDBModel)
@@ -63,8 +64,8 @@ async def debit_balance(
             set_=dict(
                 available=BalanceDBModel.available - amount,
                 held=BalanceDBModel.held - held_amount,
-                spent=BalanceDBModel.spent + amount,
-                overall_spent=BalanceDBModel.overall_spent + amount,
+                spent=BalanceDBModel.spent + spent,
+                overall_spent=BalanceDBModel.overall_spent + spent,
             ),
         )
         .returning(BalanceDBModel)

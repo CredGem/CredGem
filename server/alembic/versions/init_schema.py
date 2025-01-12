@@ -84,7 +84,7 @@ def upgrade() -> None:
             ),
             nullable=False,
         ),
-        sa.Column("idempotency_key", sa.String(), nullable=False),
+        sa.Column("external_transaction_id", sa.String(), nullable=True),
         sa.Column("wallet_id", sa.String(), nullable=False),
         sa.Column("credit_type_id", sa.String(), nullable=False),
         sa.Column("issuer", sa.String(), nullable=False),
@@ -125,7 +125,11 @@ def upgrade() -> None:
             name="transactions_credit_type_id_fkey",
         ),
         sa.Index("ix_transactions_credit_type_id", "credit_type_id", unique=False),
-        sa.Index("ix_transactions_idempotency_key", "idempotency_key", unique=True),
+        sa.Index(
+            "ix_transactions_external_transaction_id",
+            "external_transaction_id",
+            unique=True,
+        ),
         sa.Index("ix_transactions_wallet_id", "wallet_id", unique=False),
     )
 

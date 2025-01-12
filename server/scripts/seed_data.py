@@ -152,7 +152,7 @@ class TransactionGenerator:
             wallet_id=self.wallet_id,
             credit_type_id=self.credit_type_id,
             description=description,
-            idempotency_key=(
+            external_transaction_id=(
                 f"seed_{self.wallet_id}_"
                 f"{self.credit_type_id}_{self.transaction_counter}"
             ),
