@@ -8,37 +8,48 @@ import { useToast } from "@/hooks/use-toast";
 import { useWalletStore } from "@/store/useWalletStore";
 import type { CreditType } from "@/types/creditType";
 import { PlusCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 type WalletAction = 'deposit' | 'debit' | 'adjust';
-export default function WalletDetails() {
+
+type AddCreditsDialogProps = {
+  creditTypeId?: string;
+  trigger?: React.ReactNode;
+}
+
+export default function AddCreditsDialog({ creditTypeId, trigger }: AddCreditsDialogProps) {
   const [amount, setAmount] = useState("");
-  const [selectedCreditType, setSelectedCreditType] = useState("");
+  const [selectedCreditType, setSelectedCreditType] = useState<string>(creditTypeId || "");
   const [isAddingCreditType, setIsAddingCreditType] = useState(false);
   const [newCreditType, setNewCreditType] = useState("");
-  const [creditTypes, setCreditTypes] = useState<CreditType[]>([]);
   const [selectedAction, setSelectedAction] = useState<WalletAction>('deposit');
   const [resetSpent, setResetSpent] = useState(false);
   const { toast } = useToast();
   const [issuer, setIssuer] = useState("");
   const [description, setDescription] = useState("");
+  const location = useLocation()
+  const navigate = useNavigate()
+  const walletId = location.pathname.split("/").pop()
+  if (!walletId) { navigate("/wallets") }
   const {
-    selectedWallet,
-    processCredits
+    creditTypes,
+    processCredits,
+    fetchCreditTypes
   } = useWalletStore();
 
   const handleActionSubmit = async () => {
+    if (!walletId) { return }
     try {
 
-      let response;
       switch (selectedAction) {
         case 'deposit':
-          response = await processCredits('deposit', selectedWallet.id, selectedCreditType, Number(amount), description, issuer, {}, false);
+          await processCredits('deposit', walletId, selectedCreditType, Number(amount), description, issuer, {}, false);
           break;
         case 'debit':
-          response = await processCredits('debit', selectedWallet.id, selectedCreditType, Number(amount), description, issuer, {}, false);
+          await processCredits('debit', walletId, selectedCreditType, Number(amount), description, issuer, {}, false);
           break;
         case 'adjust':
-          response = await processCredits('adjust', selectedWallet.id, selectedCreditType, Number(amount), description, issuer, {}, resetSpent);
+          await processCredits('adjust', walletId, selectedCreditType, Number(amount), description, issuer, {}, resetSpent);
           break;
       }
 
@@ -59,14 +70,25 @@ export default function WalletDetails() {
     }
   };
 
-
+  useEffect(() => {
+    const loadCreditTypes = async () => {
+      try {
+        await fetchCreditTypes();
+      } catch (error) {
+        toast({
+          title: "Error loading credit types",
+          description: "Failed to load available credit types",
+          variant: "destructive",
+        });
+      }
+    };
+    loadCreditTypes();
+  }, []);
+  
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Manage Wallet Credits
-        </Button>
+        {trigger || <Button>Add Credits</Button>}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -125,7 +147,7 @@ export default function WalletDetails() {
                   onClick={async () => {
                     try {
                       const newType = await creditTypeApi.createCreditType(newCreditType, "");
-                      setCreditTypes(prev => [...prev, newType]);
+                      await fetchCreditTypes();
                       setSelectedCreditType(newType.id);
                       setIsAddingCreditType(false);
                       setNewCreditType("");

@@ -22,6 +22,7 @@ import {
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { PlusIcon } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -36,6 +37,7 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
+  const navigate = useNavigate();
 
   const table = useReactTable({
     data,
@@ -91,6 +93,7 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  onClick={() => navigate(`/wallets/${row.getValue('id')}`)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

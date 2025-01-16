@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useWalletStore } from "@/store/useWalletStore";
 import type { CreditType } from "@/types/creditType";
-import { WalletIcon } from "lucide-react";
+import { WalletIcon, PlusCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import AddCreditsDialog from "./add-credits-dialog";
@@ -121,6 +121,7 @@ export default function WalletDetails() {
             <AddCreditsDialog />
           </CardHeader>
           <CardContent>
+            <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -128,19 +129,32 @@ export default function WalletDetails() {
                   <TableHead>Available</TableHead>
                   <TableHead>Held</TableHead>
                   <TableHead>Spent</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {selectedWallet.balances.map((balance) => (
                   <TableRow key={balance.credit_type_id}>
-                    <TableCell>{creditTypes[balance.credit_type_id].name}</TableCell>
+                    <TableCell>{creditTypes[balance.credit_type_id]?.name}</TableCell>
                     <TableCell>{balance.available}</TableCell>
                     <TableCell>{balance.held}</TableCell>
                     <TableCell>{balance.spent}</TableCell>
+                    <TableCell className="text-right">
+                      <AddCreditsDialog 
+                        creditTypeId={balance.credit_type_id}
+                        trigger={
+                          <Button variant="ghost" size="sm">
+                            <PlusCircle className="h-4 w-4 mr-2" />
+                            Add Credits
+                          </Button>
+                        }
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
