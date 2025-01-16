@@ -2,8 +2,22 @@ import { useMemo } from 'react';
 
 // Utility function to generate a seeded random number
 const seededRandom = (seed: string, index: number): number => {
-  const char = seed.charCodeAt(Math.min(index, seed.length - 1));
-  return (char / 255);
+  let hash = 0;
+  const str = seed + index;
+  
+  // Generate a more random hash using Jenkins One-at-a-Time hash
+  for (let i = 0; i < str.length; i++) {
+    hash += str.charCodeAt(i);
+    hash += (hash << 10);
+    hash ^= (hash >> 6);
+  }
+  
+  hash += (hash << 3);
+  hash ^= (hash >> 11);
+  hash += (hash << 15);
+
+  // Normalize to 0-1 range
+  return Math.abs(hash) / (2 ** 32);
 };
 
 // Available Tailwind gradient colors
