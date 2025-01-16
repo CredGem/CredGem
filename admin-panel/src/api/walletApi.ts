@@ -1,5 +1,5 @@
 import { axiosInstance } from "./axiosInstance";
-import { WalletDetails, WalletBalance, WalletDepositRequest, WalletDebitRequest, WalletAdjustRequest } from "../types/wallet";
+import { WalletDetails, WalletDepositRequest, WalletDebitRequest, WalletAdjustRequest } from "../types/wallet";
 
 export const walletApi = {
   getWallets: async () => {
@@ -27,7 +27,7 @@ export const walletApi = {
     });
     return response.data;
   },
-
+  
   deleteWallet: async (id: string) => {
     await axiosInstance.delete(`/wallets/${id}`);
   },

@@ -1,67 +1,98 @@
-import { Link } from "react-router-dom";
-import { HomeIcon, WalletIcon, TransactionsIcon, CreditTypeIcon } from "./Icons";
-import { ReactNode } from "react";
-import { useLocation } from "react-router-dom";
+import { AppSidebar } from "@/components/app-sidebar"
+import { Separator } from "@/components/ui/separator"
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar"
+import { ModeToggle } from "./mode-toggle"
+import { RainbowButton } from "./ui/rainbow-button"
+import { DynamicBreadcrumb } from "./breadcrums-dynamic"
+import { GalleryVerticalEnd, AudioWaveform, Command, Gauge, Wallet, ArrowRightLeft, Coins, Terminal } from "lucide-react"
 
-export function Sidebar() {
-  const location = useLocation();
+export const navData = {
+  user: {
+    name: "shadcn",
+    email: "m@example.com",
+    avatar: "/avatars/shadcn.jpg",
+  },
+  env: [
+    {
+      name: "Development",
+      logo: GalleryVerticalEnd,
+    },
+    {
+      name: "Staging",
+      logo: AudioWaveform,
+    },
+    {
+      name: "Production",
+      logo: Command,
+    },
+  ],
+  navMain: [
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: Gauge,
+      items: []
+    },
+        {
+          title: "Wallets",
+          url: "/wallets",
+          icon: Wallet,
+          items: []
+        },
+        {
+          title: "Transactions",
+          url: "/transactions",
+          icon: ArrowRightLeft,
+          items: []
+        },
+        {
+          title: "Credits",
+          url: "/credits",
+          icon: Coins,
+          items: []
+          },
+        {
+          title: "Playground",
+          url: "/playground",
+          icon: Terminal,
+          items: []
+        }
+    
 
-  return (
-    <div className="w-64 bg-content1 h-screen shadow-lg">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold">
-          <span className="text-primary">CredGem</span>
-        </h1>
-      </div>
-      <nav className="mt-6 flex flex-col gap-1">
-        <SidebarItem 
-          icon={<HomeIcon />} 
-          text="Home" 
-          to="/"
-          active={location.pathname === '/'} 
-        />
-        <SidebarItem 
-          icon={<WalletIcon />} 
-          text="Wallets" 
-          to="/wallets"
-          active={location.pathname === '/wallets'} 
-        />
-        <SidebarItem 
-          icon={<TransactionsIcon />} 
-          text="Transactions" 
-          to="/transactions"
-          active={location.pathname === '/transactions'} 
-        />
-        <SidebarItem 
-          icon={<CreditTypeIcon />} 
-          text="Credit Types" 
-          to="/credit-settings"
-          active={location.pathname === '/credit-settings'} 
-        />
-      </nav>
-    </div>
-  );
+  ],
+}       
+
+const BREADCRUMB_MAPPING: Record<string, string> = {
+  "": "Dashboard",
+  "wallets": "Wallets Management",
+  "wallet-details": "Wallet Details",
+  "transactions": "Transactions",
+  "credits": "Credits",
+  // Add more mappings as needed
 }
 
-interface SidebarItemProps {
-  icon: ReactNode;
-  text: string;
-  to: string;
-  active?: boolean;
-}
-
-function SidebarItem({ icon, text, to, active }: SidebarItemProps) {
+export default function SidebarSc({ children }: { children: React.ReactNode }) {
   return (
-    <Link
-      to={to}
-      className={`flex items-center px-6 py-3 text-foreground transition-colors relative ${
-        active 
-          ? "bg-primary/10 text-primary before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:bg-primary"
-          : "hover:bg-content2"
-      }`}
-    >
-      <span className={`mr-3 ${active ? "text-primary" : ""}`}>{icon}</span>
-      <span className={active ? "font-medium" : ""}>{text}</span>
-    </Link>
-  );
-} 
+    <SidebarProvider>
+      <AppSidebar navData={navData} />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <DynamicBreadcrumb breadcrumbData={BREADCRUMB_MAPPING} />
+          </div>
+          <div className="ml-auto flex items-center gap-2 px-4">
+            <RainbowButton className="h-8">Star On Github</RainbowButton>
+            <ModeToggle />
+          </div>
+        </header>
+        {children}
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
