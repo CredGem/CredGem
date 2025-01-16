@@ -4,6 +4,7 @@ import { DataTable } from "./data-table";
 import { columns } from "./columns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddWalletDialog } from "./add-wallet";
+import WalletsAnalytics from "./analytics";
 
 
 
@@ -22,7 +23,6 @@ export default function Wallets() {
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [isOpen, setIsOpen] = useState(false);
 
-  console.log(wallets);
 
   useEffect(() => {
     fetchWallets({
@@ -38,6 +38,7 @@ export default function Wallets() {
         <h1 className="text-2xl font-bold">Wallets</h1>
         <p className="text-sm text-muted-foreground">View all your wallets</p>
       </div>
+      <WalletsAnalytics/>
       <div className="container mx-auto py-2">
         {isLoading ? (
           <div className="w-full h-48 flex items-center justify-center">

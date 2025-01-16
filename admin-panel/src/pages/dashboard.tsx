@@ -13,7 +13,7 @@ import { useInsightsStore } from "@/store/useInsightsStore";
 import React, { useEffect, useState } from "react";
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BackgroundVariants, BackgroundVariantsDark, BackgroundVariantsLight } from "@/components/background-varients";
+import { BackgroundVariantsDark, BackgroundVariantsLight } from "@/components/background-varients";
 import { useTheme } from "@/components/theme-provider";
 
 
@@ -372,7 +372,6 @@ export function DashboardCard({ title, value, description, icon }: DashboardCard
 export default function Dashboard() {
   const { walletActivity, trendingWallets, fetchWalletActivity, fetchTrendingWallets } = useInsightsStore();
   const { theme } = useTheme()
-  // ... existing code ...
 
   // You can now check the theme like this:
   const isDarkMode = theme === "dark"
