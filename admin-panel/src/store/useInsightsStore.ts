@@ -7,6 +7,10 @@ interface InsightsState {
   walletActivity: WalletActivityResponse | null;
   trendingWallets: TrendingWallet[] | null;
   isLoading: boolean;
+  isLoadingFetchCreditUsage: boolean;
+  isLoadingFetchCreditUsageTimeSeries: boolean;
+  isLoadingFetchWalletActivity: boolean;
+  isLoadingFetchTrendingWallets: boolean;
   error: string | null;
 
   // Actions
@@ -22,6 +26,10 @@ export const useInsightsStore = create<InsightsState>((set) => ({
   walletActivity: null,
   trendingWallets: null,
   isLoading: false,
+  isLoadingFetchCreditUsage: false,
+  isLoadingFetchCreditUsageTimeSeries: false,
+  isLoadingFetchWalletActivity: false,
+  isLoadingFetchTrendingWallets: false,
   error: null,
 
   fetchCreditUsage: async (startDate: string, endDate: string) => {

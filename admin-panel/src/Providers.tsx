@@ -1,10 +1,10 @@
-import { NextUIProvider } from '@nextui-org/react'
 import { ReactNode } from 'react'
+import { ThemeProvider } from './components/theme-provider'
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <NextUIProvider>
+    <ThemeProvider>
       {children}
-    </NextUIProvider>
+    </ThemeProvider>
   )
 } 
