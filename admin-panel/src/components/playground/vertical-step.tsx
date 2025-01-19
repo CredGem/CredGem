@@ -12,6 +12,7 @@ export type VerticalStepProps = {
   className?: string;
   description?: React.ReactNode;
   title?: React.ReactNode;
+  status: "active" | "inactive" | "complete";
 };
 
 export interface VerticalStepsProps extends React.HTMLAttributes<HTMLButtonElement> {
@@ -143,8 +144,7 @@ const VerticalSteps = React.forwardRef<HTMLButtonElement, VerticalStepsProps>(
       <nav aria-label="Progress" className="max-w-fit">
         <ol className={cn("flex flex-col gap-y-3", colors, className)}>
           {steps?.map((step, stepIdx) => {
-            let status =
-              currentStep === stepIdx ? "active" : currentStep < stepIdx ? "inactive" : "complete";
+            let status = step.status;
 
             return (
               <li key={stepIdx} className="relative">
