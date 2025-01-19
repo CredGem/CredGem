@@ -8,9 +8,22 @@ import { columns } from "./columns";
 import { toast } from "@/hooks/use-toast";
 import { CreditType } from "@/types/creditType";
 
+// Add debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
 
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
 
+  return debouncedValue;
+}
 
 export default function Transactions() {
   const { 
@@ -24,13 +37,10 @@ export default function Transactions() {
   } = useTransactionStore();
 
   const { creditTypes, fetchCreditTypes, getCreditTypeName } = useWalletStore();
-  const [selectedCreditType, setSelectedCreditType] = useState<string>("");
+  const [selectedCreditType, setSelectedCreditType] = useState<string | undefined>(undefined);
   const [selectedTimeRange, setSelectedTimeRange] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: "created_at",
-    direction: "descending",
-  });
+  const debouncedSearchQuery = useDebounce(searchQuery, 500); // 500ms delay
 
   const [enrichedTransactions, setEnrichedTransactions] = useState<Transaction[]>([]);
 
@@ -38,19 +48,17 @@ export default function Transactions() {
     const _enrichedTransactions = transactions.map((transaction) => ({
       ...transaction,
       credit_type: creditTypes.find((type) => type.id === transaction.credit_type_id)?.name || "Unknown",
+      external_transaction_id: null,
+      hold_status: null,
+      status: "active" as const,
     }));
     setEnrichedTransactions(_enrichedTransactions);
   }, [transactions, creditTypes]);
 
-    useEffect(() => {
+  useEffect(() => {
     const loadCreditTypes = async () => {
       try {
-        const types = await fetchCreditTypes();
-        const creditTypesRes = {};
-        types.forEach((type) => {
-            creditTypesRes[type.id] = type;
-        });
-        setCreditTypes(creditTypesRes);
+        await fetchCreditTypes();
       } catch (error) {
         toast({
           title: "Error loading credit types",
@@ -73,9 +81,16 @@ export default function Transactions() {
         params.credit_type_id = selectedCreditType;
       }
 
+      if (debouncedSearchQuery) {
+        params.search = debouncedSearchQuery;
+      }
+
       // Apply time range filter
       if (selectedTimeRange !== "all") {
         const now = new Date();
+        const endDate = new Date(now);
+        endDate.setHours(23, 59, 59, 999); // Set to end of day
+
         const hours = {
           "24h": 24,
           "7d": 24 * 7,
@@ -83,8 +98,12 @@ export default function Transactions() {
         }[selectedTimeRange] || 0;
 
         if (hours) {
-          const timeLimit = new Date(now.getTime() - hours * 60 * 60 * 1000);
-          params.start_date = timeLimit.toISOString();
+          const startDate = new Date(now);
+          startDate.setHours(startDate.getHours() - hours);
+          startDate.setHours(0, 0, 0, 0); // Set to start of day
+          
+          params.start_date = startDate.toISOString();
+          params.end_date = endDate.toISOString();
         }
       }
 
@@ -92,7 +111,7 @@ export default function Transactions() {
     };
 
     fetchData();
-  }, [fetchTransactions, selectedCreditType, selectedTimeRange, currentPage, pageSize]);
+  }, [fetchTransactions, selectedCreditType, selectedTimeRange, debouncedSearchQuery, currentPage, pageSize]);
 
   return (
     <div className={`h-[100vh] flex flex-col gap-4 p-10`}>
@@ -112,6 +131,12 @@ export default function Transactions() {
             columns={columns} 
             data={enrichedTransactions} 
             creditTypes={creditTypes}
+            credit_type_id={selectedCreditType}
+            onCreditTypeChange={setSelectedCreditType}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            timePeriod={selectedTimeRange}
+            onTimePeriodChange={setSelectedTimeRange}
           />
         )}
       </div>

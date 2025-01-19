@@ -40,7 +40,7 @@ export function NavMain({
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
-          item.items?.length > 0 ?
+          item.items && item.items.length > 0 ?
           <Collapsible
             key={item.title}
             asChild
@@ -59,10 +59,10 @@ export function NavMain({
                 <SidebarMenuSub>
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild>
-                        <a href={subItem.url}>
-                          <span>{subItem.title}</span>
-                        </a>
+                      <SidebarMenuSubButton 
+                        onClick={() => navigate(subItem.url)}
+                      >
+                        <span>{subItem.title}</span>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                   ))}
@@ -74,7 +74,7 @@ export function NavMain({
           <SidebarMenuItem key={item.title}>
             <SidebarMenuButton tooltip={item.title} onClick={() => navigate(item.url)}>
               {item.icon && <item.icon />}
-              <a href={item.url}><span>{item.title}</span></a>
+              <span>{item.title}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}

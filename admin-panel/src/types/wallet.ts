@@ -103,6 +103,7 @@ export interface TransactionsQueryParams {
   page_size?: string;
   start_date?: string;
   end_date?: string;
+  search?: string;
 }
 
 export interface BaseTransactionRequest {

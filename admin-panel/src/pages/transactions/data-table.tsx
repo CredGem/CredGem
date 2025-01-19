@@ -36,55 +36,27 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   creditTypes: CreditType[]
+  credit_type_id: string | undefined
+  onCreditTypeChange: (value: string | undefined) => void
+  searchQuery: string
+  onSearchQueryChange: (value: string) => void
+  timePeriod: string
+  onTimePeriodChange: (value: string) => void
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   creditTypes,
+  credit_type_id,
+  onCreditTypeChange,
+  searchQuery,
+  onSearchQueryChange,
+  timePeriod,
+  onTimePeriodChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [description, setDescription] = useState('')
-  const [timePeriod, setTimePeriod] = useState('')
-
-  // Custom filter function for time period
-  const timeFilterFn: FilterFn<any> = (row, columnId, value) => {
-    if (value === 'all') return true
-    
-    const transactionDate = new Date(row.getValue('created_at'))
-    const today = new Date()
-    
-    switch (value) {
-      case 'today':
-        return transactionDate.toDateString() === today.toDateString()
-      case 'week':
-        const weekAgo = new Date(today.setDate(today.getDate() - 7))
-        return transactionDate >= weekAgo
-      case 'month':
-        return (
-          transactionDate.getMonth() === today.getMonth() &&
-          transactionDate.getFullYear() === today.getFullYear()
-        )
-      case 'year':
-        return transactionDate.getFullYear() === today.getFullYear()
-      default:
-        return true
-    }
-  }
-
-  // Add this custom filter function for credit type
-  // const creditTypeFilterFn: FilterFn<any> = (row, columnId, filterValue) => {
-  //   // Add this console.log to debug
-  //   console.log('Filtering:', {
-  //     rowValue: row.getValue(columnId),
-  //     filterValue,
-  //     columnId
-  //   })
-    
-  //   if (!filterValue || filterValue === 'all') return true
-  //   return row.getValue(columnId) === filterValue
-  // }
 
   const table = useReactTable({
     data,
@@ -96,33 +68,19 @@ export function DataTable<TData, TValue>({
     state: {
       sorting,
       columnFilters,
-      globalFilter: description,
+      globalFilter: searchQuery,
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setDescription,
+    onGlobalFilterChange: onSearchQueryChange,
     globalFilterFn: 'includesString',
-    filterFns: {
-      timePeriod: timeFilterFn,
-      // creditType: creditTypeFilterFn, // Add the custom filter function
-    },
   })
 
-  // Update credit type filter with debugging
+  // Update credit type filter
   const handleCreditTypeChange = (value: string) => {
-    console.log('Credit type changed to:', value)
-    table.getColumn('credit_type')?.setFilterValue(value)
+    const newValue = value === 'all' ? undefined : value;
+    onCreditTypeChange(newValue);
   }
-
-  // Update time period filter
-  useEffect(() => {
-    table.getColumn('created_at')?.setFilterValue(timePeriod)
-  }, [timePeriod])
-
-  // Add this useEffect to monitor filter changes
-  useEffect(() => {
-    console.log('Current filters:', table.getState().columnFilters)
-  }, [columnFilters])
 
   return (
     <div>
@@ -131,8 +89,8 @@ export function DataTable<TData, TValue>({
           <label className="text-sm font-medium mb-1 block">Search Description</label>
           <Input
             placeholder="Search by description"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
+            value={searchQuery}
+            onChange={(event) => onSearchQueryChange(event.target.value)}
             className="max-w-sm"
           />
         </div>
@@ -140,7 +98,7 @@ export function DataTable<TData, TValue>({
         <div>
           <label className="text-sm font-medium mb-1 block">Credit Type</label>
           <Select 
-            value={table.getColumn('credit_type')?.getFilterValue() as string ?? 'all'} 
+            value={credit_type_id ?? 'all'} 
             onValueChange={handleCreditTypeChange}
           >
             <SelectTrigger className="w-[180px]">
@@ -159,16 +117,15 @@ export function DataTable<TData, TValue>({
 
         <div>
           <label className="text-sm font-medium mb-1 block">Time Period</label>
-          <Select value={timePeriod} onValueChange={setTimePeriod}>
+          <Select value={timePeriod} onValueChange={onTimePeriodChange}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select period" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
+              <SelectItem value="24h">Last 24 Hours</SelectItem>
+              <SelectItem value="7d">Last 7 Days</SelectItem>
+              <SelectItem value="30d">Last 30 Days</SelectItem>
             </SelectContent>
           </Select>
         </div>
