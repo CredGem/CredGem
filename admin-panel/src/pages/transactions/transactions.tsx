@@ -7,6 +7,7 @@ import { DataTable } from "./data-table";
 import { columns } from "./columns";
 import { toast } from "@/hooks/use-toast";
 import { CreditType } from "@/types/creditType";
+import { Loader2 } from "lucide-react";
 
 // Add debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -41,6 +42,7 @@ export default function Transactions() {
   const [selectedTimeRange, setSelectedTimeRange] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500); // 500ms delay
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const [enrichedTransactions, setEnrichedTransactions] = useState<Transaction[]>([]);
 
@@ -108,6 +110,9 @@ export default function Transactions() {
       }
 
       await fetchTransactions(params);
+      if (isFirstLoad) {
+        setIsFirstLoad(false);
+      }
     };
 
     fetchData();
@@ -120,7 +125,7 @@ export default function Transactions() {
         <p className="text-sm text-muted-foreground">View all your transactions</p>
       </div>
       <div className="container mx-auto py-2">
-        {isLoading ? (
+        {isFirstLoad && isLoading ? (
           <div className="w-full h-48 flex items-center justify-center">
             <Skeleton className="w-full h-full" />
           </div>
@@ -137,6 +142,7 @@ export default function Transactions() {
             onSearchQueryChange={setSearchQuery}
             timePeriod={selectedTimeRange}
             onTimePeriodChange={setSelectedTimeRange}
+            loadingSpinner={isLoading && !isFirstLoad ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
           />
         )}
       </div>
