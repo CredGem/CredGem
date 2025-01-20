@@ -1,18 +1,32 @@
 import asyncio
-from typing import Optional
+from logging import getLogger
+from typing import List, Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import balances as balances_db
+from src.db import products as products_db
 from src.db import transactions as transactions_db
 from src.db import wallets
 from src.models.base import PaginationRequest
+from src.models.products import (
+    ProductSettings,
+    ProductSubscription,
+    ProductSubscriptionRequest,
+    ProductSubscriptionResponse,
+    PydanticProductSettings,
+    SubscriptionMode,
+    SubscriptionResult,
+    SubscriptionStatus,
+    SubscriptionType,
+)
 from src.models.transactions import (
     AdjustTransactionRequest,
     BalanceSnapshot,
     DebitTransactionRequest,
     DepositTransactionRequest,
+    DepositTransactionRequestPayload,
     HoldStatus,
     HoldTransactionRequest,
     HoldTransactionRequestPayload,
@@ -38,6 +52,8 @@ from src.utils.constants import (
 )
 from src.utils.ctx_managers import DBSessionCtx, db_session
 from src.utils.transactions import run_managed_transaction
+
+logger = getLogger(__name__)
 
 
 async def get_wallet_by_id(wallet_id: str) -> WalletResponse:
@@ -453,3 +469,107 @@ async def create_adjust_transaction(
         transaction_handler=_adjust_transaction_handler,
     )
     return transaction_result.to_response()
+
+
+async def get_subscriptions(wallet_id: str) -> List[ProductSubscriptionResponse]:
+    async with db_session(read_only=True) as session_ctx:
+        subscriptions = await products_db.get_subscriptions(
+            session=session_ctx.session,
+            wallet_id=wallet_id,
+        )
+    return [subscription.to_response() for subscription in subscriptions]
+
+
+async def subscribe_to_product(
+    wallet_id: str,
+    subscription_request: ProductSubscriptionRequest,
+) -> ProductSubscriptionResponse:
+    if subscription_request.type != SubscriptionType.ONE_TIME:
+        raise HTTPException(
+            status_code=400,
+            detail="Only one-time subscriptions are currently supported",
+        )
+
+    if subscription_request.mode != SubscriptionMode.ADD:
+        raise HTTPException(
+            status_code=400, detail="Only add mode is currently supported"
+        )
+
+    async with db_session() as session_ctx:
+        product = await products_db.get_product_by_id(
+            session=session_ctx.session,
+            product_id=subscription_request.product_id,
+        )
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        settings_snapshot = [
+            PydanticProductSettings(
+                id=setting.id,
+                product_id=setting.product_id,
+                credit_type_id=setting.credit_type_id,
+                credit_amount=setting.credit_amount,
+            )
+            for setting in product.settings
+        ]
+
+        subscription = await products_db.create_product_subscription(
+            session=session_ctx.session,
+            wallet_id=wallet_id,
+            subscription_request=subscription_request,
+            settings_snapshot=settings_snapshot,
+        )
+        session_ctx.add_to_refresh([subscription])
+
+    results = await _handle_one_time_add_subscription(
+        subscription=subscription,
+        settings=product.settings,
+    )
+
+    async with db_session() as session_ctx:
+        has_failures = any(not result.success for result in results)
+        final_status = (
+            SubscriptionStatus.FAILED if has_failures else SubscriptionStatus.COMPLETED
+        )
+        subscription = await products_db.update_product_subscription_status(
+            session=session_ctx.session,
+            subscription_id=subscription.id,
+            status=final_status,
+        )
+        session_ctx.add_to_refresh([subscription])
+
+    return subscription.to_response()
+
+
+async def _handle_one_time_add_subscription(
+    subscription: ProductSubscription,
+    settings: List[ProductSettings],
+) -> List[SubscriptionResult]:
+    results: List[SubscriptionResult] = []
+
+    for setting in settings:
+        deposit_request = DepositTransactionRequest(
+            credit_type_id=setting.credit_type_id,
+            description="Subscription deposit",
+            context={"subscription_id": subscription.id},
+            payload=DepositTransactionRequestPayload(
+                amount=setting.credit_amount,
+            ),
+            issuer=subscription.id,
+        )
+        try:
+            deposit_result = await create_deposit_transaction(
+                wallet_id=subscription.wallet_id, transaction_request=deposit_request
+            )
+            results.append(
+                SubscriptionResult(
+                    setting_id=setting.id, success=True, message=deposit_result.id
+                )
+            )
+        except Exception as e:
+            logger.info(f"Failed to deposit for setting {setting.id}: {e}")
+            results.append(
+                SubscriptionResult(setting_id=setting.id, success=False, message=str(e))
+            )
+
+    return results
