@@ -49,7 +49,6 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("name", name="uq_product_name"),
     )
     op.create_table(
         "product_subscriptions",

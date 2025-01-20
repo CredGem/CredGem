@@ -49,18 +49,23 @@ class ProductResponse(DBModelResponse):
     settings: List[ProductSettingsResponse]
 
 
+class SubscriptionResult(BaseModel):
+    setting_id: str
+    success: bool
+    message: Optional[str] = None
+
+
 class ProductSubscriptionResponse(DBModelResponse):
     product_id: str
     wallet_id: str
     status: SubscriptionStatus
-    settings_snapshot: List[Dict]
+    settings_snapshot: List[Dict] = Field(default_factory=list)
 
 
 class Product(DBModel):
     """Base product template that defines credit offerings"""
 
     __tablename__ = "products"
-    __table_args__ = (UniqueConstraint("name", name="uq_product_name"),)
 
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
@@ -113,7 +118,7 @@ class ProductSettings(DBModel):
     )
 
     product_id: Mapped[str] = mapped_column(
-        String, ForeignKey("products.id"), nullable=False
+        String, ForeignKey("products.id", ondelete="CASCADE"), nullable=False
     )
     credit_type_id: Mapped[str] = mapped_column(
         String, ForeignKey("credit_types.id"), nullable=False
@@ -194,7 +199,7 @@ class CreditSettingsRequest(BaseModel):
 class CreateProductRequest(BaseModel):
     name: str
     description: str
-    settings: List[CreditSettingsRequest]
+    settings: List[CreditSettingsRequest] = Field(min_length=1)
 
 
 class UpdateProductRequest(BaseModel):

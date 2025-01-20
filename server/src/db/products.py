@@ -1,7 +1,8 @@
 from typing import List, Tuple
 from uuid import uuid4
 
-from sqlalchemy import delete, func, select, update
+from fastapi import HTTPException
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -84,7 +85,7 @@ async def update_product(
 ) -> Product:
     product = await get_product_by_id(db, product_id)
     if not product:
-        raise Exception("Product not found")
+        raise HTTPException(status_code=404, detail="Product not found")
 
     update_values = request.model_dump(exclude_none=True, exclude_unset=True)
 
@@ -99,14 +100,6 @@ async def update_product(
     )
     updated_product = result.scalar_one()
     return updated_product
-
-
-async def delete_product(db: AsyncSession, product_id: str) -> None:
-    product = await get_product_by_id(db, product_id)
-    if not product:
-        raise Exception("Product not found")
-
-    await db.execute(delete(Product).where(Product.id == product_id))
 
 
 async def get_subscriptions(

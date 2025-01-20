@@ -177,7 +177,8 @@ async def subscribe_to_product(
     subscription_request: ProductSubscriptionRequest,
 ) -> ProductSubscriptionResponse:
     return await wallets_service.subscribe_to_product(
-        wallet_id=wallet_id, subscription_request=subscription_request
+        wallet_id=wallet_id,
+        subscription_request=subscription_request,
     )
 
 

@@ -66,8 +66,3 @@ async def update_product_handler(
             db=session_ctx.session, product_id=product_id, request=request
         )
     return product.to_response()
-
-
-async def delete_product_handler(product_id: str) -> None:
-    async with db_session() as session_ctx:
-        await products_db.delete_product(db=session_ctx.session, product_id=product_id)

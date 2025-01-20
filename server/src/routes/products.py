@@ -58,11 +58,3 @@ async def update_product(
     return await products_service.update_product_handler(
         product_id=product_id, request=request
     )
-
-
-@router.delete(
-    "/{product_id}",
-    description="Delete a product by its ID",
-)
-async def delete_product(product_id: str) -> None:
-    return await products_service.delete_product_handler(product_id=product_id)
