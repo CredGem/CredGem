@@ -8,7 +8,7 @@ import {
 import { ModeToggle } from "./mode-toggle"
 import { RainbowButton } from "./ui/rainbow-button"
 import { DynamicBreadcrumb } from "./breadcrums-dynamic"
-import { GalleryVerticalEnd, AudioWaveform, Command, Gauge, Wallet, ArrowRightLeft, Coins, Terminal } from "lucide-react"
+import { GalleryVerticalEnd, AudioWaveform, Command, Gauge, Wallet, ArrowRightLeft, Coins, Terminal, Package } from "lucide-react"
 
 export const navData = {
   user: {
@@ -37,32 +37,36 @@ export const navData = {
       icon: Gauge,
       items: []
     },
-        {
-          title: "Wallets",
-          url: "/wallets",
-          icon: Wallet,
-          items: []
-        },
-        {
-          title: "Transactions",
-          url: "/transactions",
-          icon: ArrowRightLeft,
-          items: []
-        },
-        {
-          title: "Credits",
-          url: "/credits",
-          icon: Coins,
-          items: []
-          },
-        {
-          title: "Playground",
-          url: "/playground",
-          icon: Terminal,
-          items: []
-        }
-    
-
+    {
+      title: "Wallets",
+      url: "/wallets",
+      icon: Wallet,
+      items: []
+    },
+    {
+      title: "Products",
+      url: "/products",
+      icon: Package,
+      items: []
+    },
+    {
+      title: "Transactions",
+      url: "/transactions",
+      icon: ArrowRightLeft,
+      items: []
+    },
+    {
+      title: "Credits",
+      url: "/credits",
+      icon: Coins,
+      items: []
+    },
+    {
+      title: "Playground",
+      url: "/playground",
+      icon: Terminal,
+      items: []
+    }
   ],
 }       
 
@@ -70,6 +74,7 @@ const BREADCRUMB_MAPPING: Record<string, string> = {
   "": "Dashboard",
   "wallets": "Wallets Management",
   "wallet-details": "Wallet Details",
+  "products": "Products Management",
   "transactions": "Transactions",
   "credits": "Credits",
   // Add more mappings as needed
