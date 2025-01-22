@@ -115,6 +115,7 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
+        sa.Column("subscription_id", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.ForeignKeyConstraint(
             ["wallet_id"], ["wallets.id"], name="transactions_wallet_id_fkey"
@@ -131,6 +132,7 @@ def upgrade() -> None:
             unique=True,
         ),
         sa.Index("ix_transactions_wallet_id", "wallet_id", unique=False),
+        sa.Index("ix_transactions_subscription_id", "subscription_id", unique=False),
     )
 
     # Create balances table

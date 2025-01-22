@@ -66,6 +66,10 @@ class DepositTransactionRequest(TransactionRequestBase):
     payload: DepositTransactionRequestPayload
 
 
+class SubscriptionDepositPayload(DepositTransactionRequest):
+    subscription_id: str = Field(description="Id of the subscription to deposit for")
+
+
 class DebitTransactionRequestPayload(RequestPayloadBase):
     type: Literal["debit"] = Field(default="debit")
     amount: float = Field(gt=0, description="Amount to debit")
@@ -132,6 +136,7 @@ class TransactionResponse(DBModelResponse):
     external_transaction_id: Optional[str]
     payload: Any
     balance_snapshot: Optional[dict] = None
+    subscription_id: Optional[str] = None
 
 
 class TransactionDBModel(DBModel):
@@ -156,6 +161,7 @@ class TransactionDBModel(DBModel):
     balance_snapshot: Mapped[Optional[Dict[str, float]]] = mapped_column(
         JSON, nullable=True
     )  # BalanceSnapshot as JSON
+    subscription_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     def to_response(self) -> TransactionResponse:
         return TransactionResponse(
@@ -169,6 +175,7 @@ class TransactionDBModel(DBModel):
             external_transaction_id=self.external_transaction_id,
             payload=self.payload,
             balance_snapshot=self.balance_snapshot,
+            subscription_id=self.subscription_id,
         )
 
 
