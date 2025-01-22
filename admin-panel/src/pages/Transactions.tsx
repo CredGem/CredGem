@@ -1,27 +1,13 @@
-import { 
-  Input, 
-  Table, 
-  TableHeader, 
-  TableBody, 
-  TableColumn, 
-  TableRow, 
-  TableCell, 
-  Chip, 
-  Select, 
-  SelectItem,
-  Card,
-  User,
-  SortDescriptor,
-  Pagination,
-  Spinner,
-  Button
-} from "@nextui-org/react";
+;
 import { Icon } from "@iconify/react";
 import { SearchIcon } from "../components/Icons";
 import { useEffect, useMemo, useState } from "react";
 import { useTransactionStore } from "../store/useTransactionStore";
 import { useWalletStore } from "../store/useWalletStore";
 import { Transaction, TransactionsQueryParams } from "../types/wallet";
+import { Card } from "@/components/ui/card";
+import { Select, SelectItem } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 const statusColorMap = {
   deposit: "success",
@@ -140,7 +126,6 @@ export function Transactions() {
             <h3 className="text-sm mb-2">Search Description</h3>
             <Input
               placeholder="Search by description"
-              startContent={<SearchIcon />}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />

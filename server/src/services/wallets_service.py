@@ -2,7 +2,7 @@ import asyncio
 from logging import getLogger
 from typing import List, Optional
 
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import balances as balances_db
@@ -64,7 +64,9 @@ async def get_wallet_by_id(wallet_id: str) -> WalletResponse:
             session=session_ctx.session, wallet_id=wallet_id
         )
         if not wallet:
-            raise HTTPException(status_code=404, detail=WALLET_NOT_FOUND_ERROR)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=WALLET_NOT_FOUND_ERROR
+            )
         session_ctx.add_to_refresh([wallet])
     return wallet.to_response()
 
@@ -76,7 +78,9 @@ async def get_wallet_with_balances(wallet_id: str) -> WalletResponse:
             session=session_ctx.session, wallet_id=wallet_id
         )
         if not wallet:
-            raise HTTPException(status_code=404, detail=WALLET_NOT_FOUND_ERROR)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=WALLET_NOT_FOUND_ERROR
+            )
         session_ctx.add_to_refresh([wallet])
     return wallet.to_response()
 
@@ -123,7 +127,9 @@ async def update_wallet(
             update_wallet_request=update_wallet_request,
         )
         if not wallet:
-            raise HTTPException(status_code=404, detail=WALLET_NOT_FOUND_ERROR)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=WALLET_NOT_FOUND_ERROR
+            )
         session_ctx.add_to_refresh([wallet])
     return wallet.to_response()
 
@@ -136,7 +142,9 @@ async def delete_wallet(wallet_id: str) -> None:
             wallet_id=wallet_id,
         )
         if not wallet:
-            raise HTTPException(status_code=404, detail=WALLET_NOT_FOUND_ERROR)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=WALLET_NOT_FOUND_ERROR
+            )
 
 
 async def _deposit_transaction_handler(
@@ -150,9 +158,6 @@ async def _deposit_transaction_handler(
         credit_type_id=pending_transaction.credit_type_id,
         amount=pending_transaction.payload["amount"],
     )
-    if updated_balance.available < 0:
-        raise HTTPException(status_code=400, detail=INSUFFICIENT_BALANCE_ERROR)
-
     balance_snapshot = BalanceSnapshot(
         available=updated_balance.available,
         held=updated_balance.held,
@@ -213,9 +218,14 @@ async def _debit_transaction_handler(
         spent=spent,
     )
     if not updated_balance:
-        raise HTTPException(status_code=404, detail=BALANCE_NOT_FOUND_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=BALANCE_NOT_FOUND_ERROR
+        )
     if updated_balance.available < 0:
-        raise HTTPException(status_code=400, detail=INSUFFICIENT_BALANCE_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=INSUFFICIENT_BALANCE_ERROR,
+        )
 
     balance_snapshot = BalanceSnapshot(
         available=updated_balance.available,
@@ -223,6 +233,13 @@ async def _debit_transaction_handler(
         spent=updated_balance.spent,
         overall_spent=updated_balance.overall_spent,
     )
+
+    if hold_transaction_payload:
+        await transactions_db.update_transaction(
+            session=session,
+            transaction_id=hold_transaction_id,
+            hold_status=HoldStatus.USED,
+        )
 
     updated_transaction = await transactions_db.update_transaction(
         session=session,
@@ -245,16 +262,22 @@ async def _get_and_validate_hold(
         session=session,
     )
     if not hold_transaction:
-        raise HTTPException(status_code=404, detail=HOLD_TRANSACTION_NOT_FOUND_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=HOLD_TRANSACTION_NOT_FOUND_ERROR,
+        )
 
     if hold_transaction.hold_status != HoldStatus.HELD.value:
-        raise HTTPException(status_code=400, detail=HOLD_TRANSACTION_NOT_HELD_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=HOLD_TRANSACTION_NOT_HELD_ERROR,
+        )
 
     hold_transaction_payload = HoldTransactionRequestPayload(**hold_transaction.payload)
 
     if hold_transaction_payload.amount < transaction_request.payload["amount"]:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail=HOLD_AMOUNT_EXCEEDS_ERROR,
         )
     return hold_transaction_payload
@@ -283,9 +306,14 @@ async def _hold_transaction_handler(
         amount=pending_transaction.payload["amount"],
     )
     if not updated_balance:
-        raise HTTPException(status_code=404, detail=BALANCE_NOT_FOUND_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=BALANCE_NOT_FOUND_ERROR
+        )
     if updated_balance.held < 0:
-        raise HTTPException(status_code=400, detail=INSUFFICIENT_BALANCE_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=INSUFFICIENT_BALANCE_ERROR,
+        )
 
     balance_snapshot = BalanceSnapshot(
         available=updated_balance.available,
@@ -299,6 +327,7 @@ async def _hold_transaction_handler(
         transaction_id=pending_transaction.id,
         status=TransactionStatus.COMPLETED,
         balance_snapshot=balance_snapshot.model_dump(),
+        hold_status=HoldStatus.HELD,
     )
     assert updated_transaction is not None
     return updated_transaction
@@ -327,7 +356,16 @@ async def _release_transaction_handler(
         session=session,
     )
     if not hold_transaction:
-        raise HTTPException(status_code=404, detail=HOLD_TRANSACTION_NOT_HELD_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=HOLD_TRANSACTION_NOT_FOUND_ERROR,
+        )
+
+    if hold_transaction.hold_status != HoldStatus.HELD.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=HOLD_TRANSACTION_NOT_HELD_ERROR,
+        )
 
     hold_transaction_payload = HoldTransactionRequestPayload(**hold_transaction.payload)
     updated_balance = await balances_db.release_balance(
@@ -337,9 +375,14 @@ async def _release_transaction_handler(
         amount=hold_transaction_payload.amount,
     )
     if not updated_balance:
-        raise HTTPException(status_code=404, detail=BALANCE_NOT_FOUND_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=BALANCE_NOT_FOUND_ERROR
+        )
     if updated_balance.held < 0:
-        raise HTTPException(status_code=400, detail=INSUFFICIENT_BALANCE_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=INSUFFICIENT_BALANCE_ERROR,
+        )
 
     balance_snapshot = BalanceSnapshot(
         available=updated_balance.available,
@@ -392,9 +435,14 @@ async def _adjust_transaction_handler(
         reset_spent=pending_transaction.payload.get("reset_spent", False),
     )
     if not updated_balance:
-        raise HTTPException(status_code=404, detail=BALANCE_NOT_FOUND_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=BALANCE_NOT_FOUND_ERROR
+        )
     if updated_balance.available < 0 or updated_balance.held < 0:
-        raise HTTPException(status_code=400, detail=INSUFFICIENT_BALANCE_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=INSUFFICIENT_BALANCE_ERROR,
+        )
 
     balance_snapshot = BalanceSnapshot(
         available=updated_balance.available,

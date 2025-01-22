@@ -1,8 +1,7 @@
-import { Button } from "@nextui-org/react";
 import { useTheme } from "next-themes";
 import { MoonIcon, SunIcon } from "./Icons";
 import { useEffect, useState } from "react";
-
+import { Button } from "@/components/ui/button";
 export function Header() {
   const [mounted, setMounted] = useState(false);
 
@@ -24,8 +23,7 @@ function ThemeSwitch() {
 
   return (
     <Button
-      isIconOnly
-      variant="light"
+      variant="outline"
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       className="text-foreground"
     >

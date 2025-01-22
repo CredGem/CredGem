@@ -68,9 +68,13 @@ services:
     build: 
       context: ./admin-panel
       dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://0.0.0.0:8000/api/v1
+    environment:
+      - VITE_API_URL=http://0.0.0.0:8000/api/v1
     container_name: "admin-panel-container-credgem"
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3001:3000"
     depends_on:
       - server
     networks:

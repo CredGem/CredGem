@@ -137,6 +137,8 @@ class TransactionResponse(DBModelResponse):
     payload: Any
     balance_snapshot: Optional[dict] = None
     subscription_id: Optional[str] = None
+    hold_status: Optional[HoldStatus] = None
+    wallet_id: str
 
 
 class TransactionDBModel(DBModel):
@@ -176,6 +178,8 @@ class TransactionDBModel(DBModel):
             payload=self.payload,
             balance_snapshot=self.balance_snapshot,
             subscription_id=self.subscription_id,
+            hold_status=self.hold_status,
+            wallet_id=self.wallet_id,
         )
 
 

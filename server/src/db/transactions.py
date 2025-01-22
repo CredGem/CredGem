@@ -37,7 +37,7 @@ async def create_transaction(
     transaction = TransactionDBModel(
         id=str(uuid4()),
         type=transaction_request.type,
-        external_transaction_id=external_transaction_id,
+        external_transaction_id=transaction_request.external_transaction_id,
         wallet_id=wallet_id,
         credit_type_id=transaction_request.credit_type_id,
         issuer=transaction_request.issuer,

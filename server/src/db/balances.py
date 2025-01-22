@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,20 +53,16 @@ async def debit_balance(
     spent: float,
 ) -> BalanceDBModel | None:
     stmt = (
-        insert(BalanceDBModel)
-        .values(
-            id=str(uuid4()),
-            wallet_id=wallet_id,
-            credit_type_id=credit_type_id,
+        update(BalanceDBModel)
+        .where(
+            BalanceDBModel.wallet_id == wallet_id,
+            BalanceDBModel.credit_type_id == credit_type_id,
         )
-        .on_conflict_do_update(
-            index_elements=["wallet_id", "credit_type_id"],
-            set_=dict(
-                available=BalanceDBModel.available - amount,
-                held=BalanceDBModel.held - held_amount,
-                spent=BalanceDBModel.spent + spent,
-                overall_spent=BalanceDBModel.overall_spent + spent,
-            ),
+        .values(
+            available=BalanceDBModel.available - amount,
+            held=BalanceDBModel.held - held_amount,
+            spent=BalanceDBModel.spent + spent,
+            overall_spent=BalanceDBModel.overall_spent + spent,
         )
         .returning(BalanceDBModel)
     )
@@ -76,30 +72,26 @@ async def debit_balance(
 
 async def hold_balance(
     session: AsyncSession, wallet_id: str, credit_type_id: str, amount: float
-) -> BalanceDBModel:
+) -> BalanceDBModel | None:
     stmt = (
-        insert(BalanceDBModel)
-        .values(
-            id=str(uuid4()),
-            wallet_id=wallet_id,
-            credit_type_id=credit_type_id,
+        update(BalanceDBModel)
+        .where(
+            BalanceDBModel.wallet_id == wallet_id,
+            BalanceDBModel.credit_type_id == credit_type_id,
         )
-        .on_conflict_do_update(
-            index_elements=["wallet_id", "credit_type_id"],
-            set_=dict(
-                held=BalanceDBModel.held + amount,
-                available=BalanceDBModel.available - amount,
-            ),
+        .values(
+            held=BalanceDBModel.held + amount,
+            available=BalanceDBModel.available - amount,
         )
         .returning(BalanceDBModel)
     )
     result = await session.execute(stmt)
-    return result.scalar_one()
+    return result.scalar_one_or_none()
 
 
 async def release_balance(
     session: AsyncSession, wallet_id: str, credit_type_id: str, amount: float
-) -> BalanceDBModel:
+) -> BalanceDBModel | None:
     stmt = (
         insert(BalanceDBModel)
         .values(
@@ -117,7 +109,7 @@ async def release_balance(
         .returning(BalanceDBModel)
     )
     result = await session.execute(stmt)
-    return result.scalar_one()
+    return result.scalar_one_or_none()
 
 
 async def adjust_balance(
@@ -126,23 +118,19 @@ async def adjust_balance(
     credit_type_id: str,
     amount: float,
     reset_spent: bool = False,
-) -> BalanceDBModel:
+) -> BalanceDBModel | None:
     stmt = (
-        insert(BalanceDBModel)
-        .values(
-            id=str(uuid4()),
-            wallet_id=wallet_id,
-            credit_type_id=credit_type_id,
+        update(BalanceDBModel)
+        .where(
+            BalanceDBModel.wallet_id == wallet_id,
+            BalanceDBModel.credit_type_id == credit_type_id,
         )
-        .on_conflict_do_update(
-            index_elements=["wallet_id", "credit_type_id"],
-            set_=dict(
-                available=amount,
-                held=0,
-                spent=0 if reset_spent else BalanceDBModel.spent,
-            ),
+        .values(
+            available=amount,
+            held=0,
+            spent=0 if reset_spent else BalanceDBModel.spent,
         )
         .returning(BalanceDBModel)
     )
     result = await session.execute(stmt)
-    return result.scalar_one()
+    return result.scalar_one_or_none()

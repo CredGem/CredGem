@@ -1,23 +1,14 @@
-import { 
-  Button,
-  Card,
-  Spinner,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Input,
-  Textarea,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem
-} from "@nextui-org/react";
 import { useEffect, useState } from "react";
 import { useWalletStore } from "../store/useWalletStore";
 import { CreditType } from "../types/creditType";
 import { DotsVerticalIcon } from "../components/Icons";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogFooter, DialogHeader } from "@/components/ui/dialog";
+import { DialogContent } from "@/components/ui/dialog";
 
 // Function to generate a color based on string
 const stringToColor = (str: string) => {
@@ -127,7 +118,7 @@ export function CreditSettings() {
     return (
       <div className="p-8 flex flex-col items-center justify-center">
         <p className="text-danger text-large mb-4">{error}</p>
-        <Button color="primary" onPress={fetchCreditTypes}>
+        <Button color="primary" onClick={fetchCreditTypes}>
           Retry
         </Button>
       </div>
@@ -143,7 +134,7 @@ export function CreditSettings() {
         </div>
         <Button 
           color="primary"
-          onPress={() => {
+          onClick={() => {
             setFormData({ name: '', description: '' });
             setIsCreateModalOpen(true);
           }}
@@ -154,7 +145,7 @@ export function CreditSettings() {
 
       {isLoading ? (
         <div className="flex justify-center p-8">
-          <Spinner size="lg" />
+          <p>Loading...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -169,30 +160,28 @@ export function CreditSettings() {
                     <h3 className="text-lg font-semibold">{creditType.name}</h3>
                     <p className="text-small text-default-500">{creditType.description}</p>
                   </div>
-                  <Dropdown>
-                    <DropdownTrigger>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger>
                       <Button 
-                        isIconOnly 
                         size="sm" 
-                        variant="light"
+                        variant="outline"
                       >
                         <DotsVerticalIcon />
                       </Button>
-                    </DropdownTrigger>
-                    <DropdownMenu>
-                      <DropdownItem key="edit" onPress={() => openEditModal(creditType)}>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => openEditModal(creditType)}>
                         Edit
-                      </DropdownItem>
-                      <DropdownItem 
-                        key="delete"
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
                         className="text-danger" 
                         color="danger"
-                        onPress={() => openDeleteModal(creditType)}
+                        onClick={() => openDeleteModal(creditType)}
                       >
                         Delete
-                      </DropdownItem>
-                    </DropdownMenu>
-                  </Dropdown>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <div className="mt-4 pt-4 border-t border-divider">
                   <div className="grid grid-cols-2 gap-2 text-small">
@@ -209,142 +198,116 @@ export function CreditSettings() {
       )}
 
       {/* Create Modal */}
-      <Modal 
-        isOpen={isCreateModalOpen} 
-        onClose={() => {
-          setIsCreateModalOpen(false);
-          setFormData({ name: '', description: '' });
-        }}
+      <Dialog 
+        open={isCreateModalOpen} 
+        onOpenChange={setIsCreateModalOpen}
       >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                Create Credit Type
-              </ModalHeader>
-              <ModalBody>
-                <Input
-                  label="Name"
-                  placeholder="Enter credit type name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  isRequired
+        <DialogContent>
+          <DialogHeader className="flex flex-col gap-1">
+            Create Credit Type
+          </DialogHeader>
+          <DialogContent>
+            <Input
+              placeholder="Enter credit type name"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              required
+            />
+            <Textarea
+              placeholder="Enter credit type description"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
-                <Textarea
-                  label="Description"
-                  placeholder="Enter credit type description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                />
-              </ModalBody>
-              <ModalFooter>
-                <Button 
-                  variant="light" 
-                  onPress={onClose}
-                >
-                  Cancel
+          </DialogContent>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsCreateModalOpen(false)}
+            >
+              Cancel
                 </Button>
                 <Button 
-                  color="primary"
-                  onPress={handleCreate}
-                  isDisabled={!formData.name.trim()}
-                >
-                  Create
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+              color="primary"
+              onClick={handleCreate}
+              disabled={!formData.name.trim()}
+            >
+              Create
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+      </Dialog>
 
       {/* Edit Modal */}
-      <Modal 
-        isOpen={isEditModalOpen} 
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setSelectedCreditType(null);
-          setFormData({ name: '', description: '' });
-        }}
+        <Dialog 
+        open={isEditModalOpen} 
+        onOpenChange={setIsEditModalOpen}
       >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                Edit Credit Type
-              </ModalHeader>
-              <ModalBody>
-                <Input
-                  label="Name"
-                  placeholder="Enter credit type name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  isRequired
-                />
-                <Textarea
-                  label="Description"
-                  placeholder="Enter credit type description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                />
-              </ModalBody>
-              <ModalFooter>
+          <DialogHeader className="flex flex-col gap-1">
+            Edit Credit Type
+          </DialogHeader>
+          <DialogContent>
+            <Input
+              placeholder="Enter credit type name"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              required
+            />
+            <Textarea
+              placeholder="Enter credit type description"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              required
+            />
+              </DialogContent>
+              <DialogFooter>
                 <Button 
-                  variant="light" 
-                  onPress={onClose}
+                  variant="outline" 
+                  onClick={() => setIsEditModalOpen(false)}
                 >
                   Cancel
                 </Button>
                 <Button 
                   color="primary"
-                  onPress={handleEdit}
-                  isDisabled={!formData.name.trim()}
+                  onClick={handleEdit}
+                  disabled={!formData.name.trim()}
                 >
                   Save Changes
                 </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+            </DialogFooter>
+      </Dialog>
 
       {/* Delete Modal */}
-      <Modal 
-        isOpen={isDeleteModalOpen} 
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          setSelectedCreditType(null);
-        }}
+      <Dialog 
+        open={isDeleteModalOpen} 
+        onOpenChange={setIsDeleteModalOpen}
       >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
+      
+      <DialogHeader className="flex flex-col gap-1">
                 Delete Credit Type
-              </ModalHeader>
-              <ModalBody>
+              </DialogHeader>
+        <DialogContent>
+              <DialogContent>
                 <p>
                   Are you sure you want to delete the credit type "{selectedCreditType?.name}"? 
                   This action cannot be undone.
                 </p>
-              </ModalBody>
-              <ModalFooter>
+              </DialogContent>
+              <DialogFooter>
                 <Button 
-                  variant="light" 
-                  onPress={onClose}
+                  variant="outline" 
+                  onClick={() => setIsDeleteModalOpen(false)}
                 >
                   Cancel
                 </Button>
                 <Button 
                   color="danger"
-                  onPress={handleDelete}
+                  onClick={handleDelete}
                 >
                   Delete
                 </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+              </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
