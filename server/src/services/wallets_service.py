@@ -31,6 +31,7 @@ from src.models.transactions import (
     HoldTransactionRequest,
     HoldTransactionRequestPayload,
     ReleaseTransactionRequest,
+    SubscriptionDepositPayload,
     TransactionDBModel,
     TransactionResponse,
     TransactionStatus,
@@ -548,14 +549,14 @@ async def _handle_one_time_add_subscription(
     results: List[SubscriptionResult] = []
 
     for setting in settings:
-        deposit_request = DepositTransactionRequest(
+        deposit_request = SubscriptionDepositPayload(
+            subscription_id=subscription.id,
             credit_type_id=setting.credit_type_id,
             description="Subscription deposit",
-            context={"subscription_id": subscription.id},
             payload=DepositTransactionRequestPayload(
                 amount=setting.credit_amount,
             ),
-            issuer=subscription.id,
+            issuer="subscription",
         )
         try:
             deposit_result = await create_deposit_transaction(

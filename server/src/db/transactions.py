@@ -8,6 +8,7 @@ from src.models.base import PaginationRequest
 from src.models.transactions import (
     HoldStatus,
     PaginatedTransactionDBModel,
+    SubscriptionDepositPayload,
     TransactionDBModel,
     TransactionRequestBase,
     TransactionStatus,
@@ -21,6 +22,14 @@ async def create_transaction(
     wallet_id: str,
     transaction_request: TransactionRequestBase,
 ) -> TransactionDBModel:
+    external_transaction_id = transaction_request.external_transaction_id or str(
+        uuid4()
+    )
+
+    subscription_id = None
+    if isinstance(transaction_request, SubscriptionDepositPayload):
+        subscription_id = transaction_request.subscription_id
+
     hold_status = None
     if transaction_request.type == TransactionType.HOLD:
         hold_status = HoldStatus.HELD
@@ -36,6 +45,7 @@ async def create_transaction(
         payload=transaction_request.payload.model_dump(),
         hold_status=hold_status,
         status=TransactionStatus.PENDING,
+        subscription_id=subscription_id,
     )
     db.add(transaction)
     return transaction
