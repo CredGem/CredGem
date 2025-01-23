@@ -118,6 +118,8 @@ class TestSubscriptions:
             f"{self.base_url}/wallets/{wallet_id}/subscriptions/"
         )
         assert response.status_code == 200
-        subscriptions = response.json()
-        assert len(subscriptions) == 1
-        assert subscriptions[0]["status"] == SubscriptionStatus.COMPLETED
+        subscription_response = response.json()
+        assert subscription_response["total_count"] == 1
+        subscription_data = subscription_response["data"][0]
+        assert subscription_data["status"] == SubscriptionStatus.COMPLETED
+        assert subscription_data["product"]["id"] == setup_product.product["id"]

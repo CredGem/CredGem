@@ -60,6 +60,7 @@ class ProductSubscriptionResponse(DBModelResponse):
     wallet_id: str
     status: SubscriptionStatus
     settings_snapshot: List[Dict] = Field(default_factory=list)
+    product: Optional[ProductResponse] = None
 
 
 class Product(DBModel):
@@ -172,7 +173,7 @@ class ProductSubscription(DBModel):
     product: Mapped[Product] = relationship("Product", back_populates="subscriptions")
     wallet: Mapped[Wallet] = relationship("Wallet")
 
-    def to_response(self) -> ProductSubscriptionResponse:
+    def to_response(self, include_product: bool = False) -> ProductSubscriptionResponse:
         return ProductSubscriptionResponse(
             id=self.id,
             created_at=self.created_at,
@@ -181,6 +182,7 @@ class ProductSubscription(DBModel):
             wallet_id=self.wallet_id,
             status=self.status,
             settings_snapshot=self.settings_snapshot,
+            product=self.product.to_response() if include_product else None,
         )
 
 
@@ -209,3 +211,7 @@ class UpdateProductRequest(BaseModel):
 
 class PaginatedProductResponse(PaginatedResponse):
     data: List[ProductResponse]
+
+
+class PaginatedProductSubscriptionResponse(PaginatedResponse):
+    data: List[ProductSubscriptionResponse]
