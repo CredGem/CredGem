@@ -1,5 +1,18 @@
 import { axiosInstance } from "./axiosInstance";
 import { WalletDetails, WalletDepositRequest, WalletDebitRequest, WalletAdjustRequest, WalletsQueryParams, PaginatedResponse, Wallet } from "../types/wallet";
+import { API_URL } from "@/lib/constants";
+import { Product } from "../types/product";
+import axios from "axios";
+import { ProductSubscription } from "@/types/product";
+
+type SubscriptionType = "ONE_TIME" | "RECURRING";
+type SubscriptionMode = "ADD" | "RESET";
+
+interface SubscribeToProductRequest {
+  product_id: string;
+  mode: SubscriptionMode;
+  type: SubscriptionType;
+}
 
 export const walletApi = {
   getWallets: async (params?: WalletsQueryParams) => {
@@ -55,6 +68,24 @@ export const walletApi = {
       `/wallets/${walletId}/adjust`,
       data
     );
+    return response.data;
+  },
+
+  getSubscriptions: async (walletId: string, params: { page: number; page_size: number }) => {
+    const response = await axios.get<PaginatedResponse<ProductSubscription>>(
+      `${API_URL}/wallets/${walletId}/subscriptions`,
+      { params }
+    );
+    return response.data;
+  },
+
+  getProducts: async () => {
+    const response = await axiosInstance.get<Product[]>("/products");
+    return response.data;
+  },
+
+  subscribeToProduct: async (walletId: string, data: SubscribeToProductRequest) => {
+    const response = await axiosInstance.post<void>(`/wallets/${walletId}/subscriptions`, data);
     return response.data;
   },
 }; 

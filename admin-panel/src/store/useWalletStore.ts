@@ -1,12 +1,22 @@
 import { create } from 'zustand';
-import { Wallet, CreateWalletPayload, WalletsQueryParams, WalletDetails, TransactionType, WalletDepositRequest, WalletDebitRequest, WalletAdjustRequest, PaginatedResponse } from '../types/wallet';
-import { CreditType, CreateCreditTypePayload, UpdateCreditTypePayload } from '../types/creditType';
+import { Wallet, CreateWalletPayload, WalletsQueryParams, WalletDetails, TransactionType, WalletDepositRequest, WalletDebitRequest, WalletAdjustRequest } from '../types/wallet';
+import { CreditType, CreateCreditTypePayload } from '../types/creditType';
 import { walletApi } from '../api/walletApi';
 import { creditTypeApi } from '../api/creditTypeApi';
 import { toast } from '@/hooks/use-toast';
+import { Product, ProductSubscription } from '../types/product';
+
+type SubscriptionType = "ONE_TIME" | "RECURRING";
+type SubscriptionMode = "ADD" | "RESET";
+
+interface SubscribeToProductRequest {
+  product_id: string;
+  mode: SubscriptionMode;
+  type: SubscriptionType;
+}
 
 interface WalletStore {
-  wallets: Wallet[];
+  wallets: (Wallet | WalletDetails)[];
   isLoading: boolean;
   error: string | null;
   selectedWallet: WalletDetails | null;
@@ -14,11 +24,14 @@ interface WalletStore {
   totalWallets: number;
   currentPage: number;
   pageSize: number;
+  subscriptions: ProductSubscription[];
+  totalCount: number;
   fetchWallets: (params?: WalletsQueryParams) => Promise<void>;
   fetchWallet: (id: string) => Promise<void>;
   fetchCreditTypes: () => Promise<void>;
+  fetchSubscriptions: (walletId: string, params: { page: number; page_size: number }) => Promise<void>;
   createWallet: (payload: CreateWalletPayload) => Promise<WalletDetails>;
-  updateWalletStatus: (id: string, status: Wallet['status']) => Promise<void>;
+  updateWallet: (id: string, name: string, context: Record<string, string>) => Promise<void>;
   clearSelectedWallet: () => void;
   getCreditTypeName: (id: string) => string;
   processCredits: (
@@ -35,6 +48,7 @@ interface WalletStore {
   updateCreditType: (id: string, data: { name: string; description: string }) => Promise<void>;
   deleteCreditType: (id: string) => Promise<void>;
   setPage: (currentPage: number) => void;
+  subscribeToProduct: (walletId: string, data: SubscribeToProductRequest) => Promise<void>;
 }
 
 export const useWalletStore = create<WalletStore>((set, get) => ({
@@ -46,6 +60,8 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
   totalWallets: 0,
   currentPage: 1,
   pageSize: 10,
+  subscriptions: [],
+  totalCount: 0,
   setPage: (currentPage: number) => set({ currentPage }),
 
   fetchWallets: async (params?: WalletsQueryParams) => {
@@ -83,13 +99,28 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     }
   },
 
+  fetchSubscriptions: async (walletId: string, params: { page: number; page_size: number }) => {
+    try {
+      const response = await walletApi.getSubscriptions(walletId, params);
+      set({
+        subscriptions: response.data,
+        totalCount: response.total_count,
+        currentPage: params.page,
+        pageSize: params.page_size,
+        error: null
+      });
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Failed to fetch subscriptions' });
+    }
+  },
+
   createWallet: async (payload: CreateWalletPayload) => {
     set({ isLoading: true, error: null });
-    const { name, context } = payload;
+    const { name, context = {} } = payload;
     try {
       const newWallet = await walletApi.createWallet(name, context);
       set((state) => ({
-        wallets: [newWallet,...state.wallets],
+        wallets: [newWallet, ...state.wallets],
         totalWallets: state.totalWallets + 1,
         isLoading: false
       }));
@@ -100,10 +131,10 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     }
   },
 
-  updateWalletStatus: async (id: string, status: Wallet['status']) => {
+  updateWallet: async (id: string, name: string, context: Record<string, string>) => {
     set({ isLoading: true, error: null });
     try {
-      const updatedWallet = await walletApi.updateWalletStatus(id, status);
+      const updatedWallet = await walletApi.updateWallet(id, name, context);
       set((state) => ({
         wallets: state.wallets.map((wallet) =>
           wallet.id === id ? updatedWallet : wallet
@@ -111,7 +142,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
         isLoading: false
       }));
     } catch (error) {
-      set({ error: 'Failed to update wallet status', isLoading: false });
+      set({ error: 'Failed to update wallet', isLoading: false });
     }
   },
 
@@ -257,6 +288,27 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       }));
     } catch (error) {
       set({ error: 'Failed to delete credit type', isLoading: false });
+    }
+  },
+
+  subscribeToProduct: async (walletId: string, data: SubscribeToProductRequest) => {
+    try {
+      await walletApi.subscribeToProduct(walletId, data);
+      // Refresh subscriptions
+      const response = await walletApi.getSubscriptions(walletId, { page: 1, page_size: 100 });
+      set({ subscriptions: response.data });
+      toast({
+        title: "Subscription added",
+        description: "Successfully subscribed to product",
+      });
+    } catch (error) {
+      set({ error: 'Failed to subscribe to product' });
+      toast({
+        title: "Error adding subscription",
+        description: error instanceof Error ? error.message : "Failed to subscribe to product",
+        variant: "destructive",
+      });
+      throw error;
     }
   }
 })); 

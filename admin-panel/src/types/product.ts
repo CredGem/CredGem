@@ -1,6 +1,8 @@
+import {BaseResponse} from "./api";
+
 export type ProductStatus = 'ACTIVE' | 'INACTIVE';
 
-export interface ProductSettings {
+export interface ProductSettings extends BaseResponse {
   id: string;
   created_at: string;
   updated_at: string;
@@ -9,7 +11,7 @@ export interface ProductSettings {
   credit_amount: number;
 }
 
-export interface Product {
+export interface Product extends BaseResponse {
   id: string;
   created_at: string;
   updated_at: string;
@@ -42,4 +44,13 @@ export interface PaginatedProductResponse {
   page_size: number;
 }
 
-export type ProductResponse = Product; 
+export type ProductResponse = Product;
+
+export interface ProductSubscription extends BaseResponse {
+  product_id: string;
+  wallet_id: string;
+  status: "PENDING" | "ACTIVE" | "COMPLETED" | "CANCELLED" | "FAILED";
+  settings_snapshot: any[];
+  product?: Product;
+}
+
