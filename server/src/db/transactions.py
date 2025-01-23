@@ -22,10 +22,6 @@ async def create_transaction(
     wallet_id: str,
     transaction_request: TransactionRequestBase,
 ) -> TransactionDBModel:
-    external_transaction_id = transaction_request.external_transaction_id or str(
-        uuid4()
-    )
-
     subscription_id = None
     if isinstance(transaction_request, SubscriptionDepositPayload):
         subscription_id = transaction_request.subscription_id
