@@ -7,23 +7,7 @@ import { DataTable } from "./data-table";
 import { columns } from "./columns";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-
-// Add debounce hook
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
+import { useDebounce } from "@/lib/utils";
 
 export default function Transactions() {
   const [isFirstLoad, setIsFirstLoad] = useState(true);
@@ -35,7 +19,7 @@ export default function Transactions() {
     totalTransactions,
     currentPage,
     pageSize,
-      setPage
+    setPage
   } = useTransactionStore();
 
   const { creditTypes, fetchCreditTypes } = useWalletStore();
@@ -119,7 +103,15 @@ export default function Transactions() {
   }, [fetchTransactions, selectedCreditType, selectedTimeRange, debouncedSearchQuery, currentPage, pageSize]);
 
   const handlePageChange = (page: number) => {
-    setPage(page)
+    setPage(page);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    // Reset to first page when searching
+    if (currentPage !== 1) {
+      setPage(1);
+    }
   };
 
   return (
@@ -143,7 +135,7 @@ export default function Transactions() {
             credit_type_id={selectedCreditType}
             onCreditTypeChange={setSelectedCreditType}
             searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
+            onSearchQueryChange={handleSearch}
             timePeriod={selectedTimeRange}
             onTimePeriodChange={setSelectedTimeRange}
             loadingSpinner={isLoading && !isFirstLoad ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

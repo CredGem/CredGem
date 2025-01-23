@@ -32,6 +32,8 @@ interface DataTableProps<TData, TValue> {
   totalCount: number
   onPageChange: (page: number) => void
   loadingSpinner?: React.ReactNode
+  searchQuery: string
+  onSearchQueryChange: (value: string) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -43,9 +45,10 @@ export function DataTable<TData, TValue>({
   totalCount,
   onPageChange,
   loadingSpinner,
+  searchQuery,
+  onSearchQueryChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
-  const [globalFilter, setGlobalFilter] = useState('')
   const navigate = useNavigate();
 
   const table = useReactTable({
@@ -57,9 +60,7 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     state: {
       sorting,
-      globalFilter,
     },
-    onGlobalFilterChange: setGlobalFilter,
   })
 
   const hasNextPage = currentPage * pageSize < totalCount;
@@ -69,8 +70,8 @@ export function DataTable<TData, TValue>({
       <div className="flex items-center py-4">
         <Input
           placeholder="Search wallets..."
-          value={globalFilter}
-          onChange={(event) => setGlobalFilter(event.target.value)}
+          value={searchQuery}
+          onChange={(event) => onSearchQueryChange(event.target.value)}
           className="max-w-sm"
         />
         <div className="flex items-center gap-2 ml-auto">

@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AddWalletDialog } from "./add-wallet";
 import WalletsAnalytics from "./analytics";
 import { Loader2 } from "lucide-react";
+import { useDebounce } from "@/lib/utils";
 
 export default function Wallets() {
   const { 
@@ -20,6 +21,7 @@ export default function Wallets() {
   } = useWalletStore();
   
   const [filterValue, setFilterValue] = React.useState("");
+  const debouncedFilterValue = useDebounce(filterValue, 500); // 500ms delay
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -28,7 +30,7 @@ export default function Wallets() {
       await fetchWallets({
         page: currentPage,
         page_size: pageSize,
-        search: filterValue || undefined
+        search: debouncedFilterValue || undefined
       });
       if (isFirstLoad) {
         setIsFirstLoad(false);
@@ -36,10 +38,18 @@ export default function Wallets() {
     };
 
     fetchData();
-  }, [fetchWallets, currentPage, pageSize, filterValue]);
+  }, [fetchWallets, currentPage, pageSize, debouncedFilterValue]);
 
   const handlePageChange = (page: number) => {
     setPage(page);
+  };
+
+  const handleSearch = (value: string) => {
+    setFilterValue(value);
+    // Reset to first page when searching
+    if (currentPage !== 1) {
+      setPage(1);
+    }
   };
 
   return (
@@ -66,6 +76,8 @@ export default function Wallets() {
             totalCount={totalWallets}
             onPageChange={handlePageChange}
             loadingSpinner={isLoading && !isFirstLoad ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            searchQuery={filterValue}
+            onSearchQueryChange={handleSearch}
           />
         )}
       </div>
