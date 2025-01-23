@@ -11,6 +11,7 @@ from src.db import transactions as transactions_db
 from src.db import wallets
 from src.models.base import PaginationRequest
 from src.models.products import (
+    PaginatedProductSubscriptionResponse,
     ProductSettings,
     ProductSubscription,
     ProductSubscriptionRequest,
@@ -31,6 +32,7 @@ from src.models.transactions import (
     HoldTransactionRequest,
     HoldTransactionRequestPayload,
     ReleaseTransactionRequest,
+    SubscriptionDepositRequest,
     TransactionDBModel,
     TransactionResponse,
     TransactionStatus,
@@ -471,13 +473,25 @@ async def create_adjust_transaction(
     return transaction_result.to_response()
 
 
-async def get_subscriptions(wallet_id: str) -> List[ProductSubscriptionResponse]:
+async def get_subscriptions(
+    wallet_id: str,
+    pagination_request: PaginationRequest,
+) -> PaginatedProductSubscriptionResponse:
     async with db_session(read_only=True) as session_ctx:
-        subscriptions = await products_db.get_subscriptions(
+        subscriptions, total_count = await products_db.get_subscriptions(
             session=session_ctx.session,
             wallet_id=wallet_id,
+            pagination_request=pagination_request,
         )
-    return [subscription.to_response() for subscription in subscriptions]
+    return PaginatedProductSubscriptionResponse(
+        page=pagination_request.page,
+        page_size=pagination_request.page_size,
+        total_count=total_count,
+        data=[
+            subscription.to_response(include_product=True)
+            for subscription in subscriptions
+        ],
+    )
 
 
 async def subscribe_to_product(
@@ -548,14 +562,14 @@ async def _handle_one_time_add_subscription(
     results: List[SubscriptionResult] = []
 
     for setting in settings:
-        deposit_request = DepositTransactionRequest(
+        deposit_request = SubscriptionDepositRequest(
+            subscription_id=subscription.id,
             credit_type_id=setting.credit_type_id,
             description="Subscription deposit",
-            context={"subscription_id": subscription.id},
             payload=DepositTransactionRequestPayload(
                 amount=setting.credit_amount,
             ),
-            issuer=subscription.id,
+            issuer="subscription",
         )
         try:
             deposit_result = await create_deposit_transaction(

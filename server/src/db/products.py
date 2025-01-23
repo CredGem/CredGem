@@ -1,3 +1,4 @@
+from asyncio import gather
 from typing import List, Tuple
 from uuid import uuid4
 
@@ -103,13 +104,34 @@ async def update_product(
 
 
 async def get_subscriptions(
-    session: AsyncSession, wallet_id: str
-) -> List[ProductSubscription]:
-    query = select(ProductSubscription).where(
-        ProductSubscription.wallet_id == wallet_id
+    session: AsyncSession, wallet_id: str, pagination_request: PaginationRequest
+) -> Tuple[List[ProductSubscription], int]:
+    # Prepare both queries
+    count_query = (
+        select(func.count(ProductSubscription.id))
+        .select_from(ProductSubscription)
+        .where(ProductSubscription.wallet_id == wallet_id)
     )
-    result = await session.execute(query)
-    return list(result.unique().scalars().all())
+
+    main_query = (
+        select(ProductSubscription)
+        .join(Product, ProductSubscription.product_id == Product.id)
+        .options(joinedload(ProductSubscription.product).joinedload(Product.settings))
+        .where(ProductSubscription.wallet_id == wallet_id)
+        .order_by(ProductSubscription.id)
+        .offset((pagination_request.page - 1) * pagination_request.page_size)
+        .limit(pagination_request.page_size)
+    )
+
+    # Execute both queries in parallel
+    count_result, subscriptions_result = await gather(
+        session.scalar(count_query), session.execute(main_query)
+    )
+
+    total_count = count_result or 0
+    subscriptions = list(subscriptions_result.unique().scalars().all())
+
+    return subscriptions, total_count
 
 
 async def create_product_subscription(

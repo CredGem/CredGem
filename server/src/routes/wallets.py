@@ -1,9 +1,13 @@
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from fastapi import Depends, Query, status
 
 from src.models.base import PaginationRequest
-from src.models.products import ProductSubscriptionRequest, ProductSubscriptionResponse
+from src.models.products import (
+    PaginatedProductSubscriptionResponse,
+    ProductSubscriptionRequest,
+    ProductSubscriptionResponse,
+)
 from src.models.transactions import (
     AdjustTransactionRequest,
     DebitTransactionRequest,
@@ -185,7 +189,12 @@ async def subscribe_to_product(
 @router.get(
     "/{wallet_id}/subscriptions",
     description="Get subscriptions for a wallet",
-    response_model=List[ProductSubscriptionResponse],
+    response_model=PaginatedProductSubscriptionResponse,
 )
-async def get_subscriptions(wallet_id: str) -> List[ProductSubscriptionResponse]:
-    return await wallets_service.get_subscriptions(wallet_id=wallet_id)
+async def get_subscriptions(
+    wallet_id: str,
+    pagination_request: PaginationRequest = Depends(get_pagination),
+) -> PaginatedProductSubscriptionResponse:
+    return await wallets_service.get_subscriptions(
+        wallet_id=wallet_id, pagination_request=pagination_request
+    )
