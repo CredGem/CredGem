@@ -6,7 +6,6 @@ import { Transaction, TransactionsQueryParams } from "@/types/wallet";
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
 import { toast } from "@/hooks/use-toast";
-import { CreditType } from "@/types/creditType";
 import { Loader2 } from "lucide-react";
 
 // Add debounce hook
@@ -27,6 +26,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function Transactions() {
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const { 
     transactions, 
     isLoading, 
@@ -34,15 +34,15 @@ export default function Transactions() {
     fetchTransactions,
     totalTransactions,
     currentPage,
-    pageSize
+    pageSize,
+      setPage
   } = useTransactionStore();
 
-  const { creditTypes, fetchCreditTypes, getCreditTypeName } = useWalletStore();
+  const { creditTypes, fetchCreditTypes } = useWalletStore();
   const [selectedCreditType, setSelectedCreditType] = useState<string | undefined>(undefined);
   const [selectedTimeRange, setSelectedTimeRange] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500); // 500ms delay
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const [enrichedTransactions, setEnrichedTransactions] = useState<Transaction[]>([]);
 
@@ -118,6 +118,10 @@ export default function Transactions() {
     fetchData();
   }, [fetchTransactions, selectedCreditType, selectedTimeRange, debouncedSearchQuery, currentPage, pageSize]);
 
+  const handlePageChange = (page: number) => {
+    setPage(page)
+  };
+
   return (
     <div className={`h-[100vh] flex flex-col gap-4 p-10`}>
       <div className={`flex flex-col relative gap-4 p-4 rounded-lg`}>
@@ -130,7 +134,7 @@ export default function Transactions() {
             <Skeleton className="w-full h-full" />
           </div>
         ) : error ? (
-          <div className="text-red-500">Error loading wallets: {error}</div>
+          <div className="text-red-500">Error loading transactions: {error}</div>
         ) : (
           <DataTable 
             columns={columns} 
@@ -142,10 +146,14 @@ export default function Transactions() {
             onSearchQueryChange={setSearchQuery}
             timePeriod={selectedTimeRange}
             onTimePeriodChange={setSelectedTimeRange}
-            loadingSpinner={isLoading && !isFirstLoad ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
+            loadingSpinner={isLoading && !isFirstLoad ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalCount={totalTransactions}
+            onPageChange={handlePageChange}
           />
         )}
       </div>
     </div>
-  )
+  );
 }

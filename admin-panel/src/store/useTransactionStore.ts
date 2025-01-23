@@ -10,6 +10,7 @@ interface TransactionStore {
   currentPage: number;
   pageSize: number;
   fetchTransactions: (params?: TransactionsQueryParams) => Promise<void>;
+  setPage: (pageSize: number) => void;
 }
 
 export const useTransactionStore = create<TransactionStore>((set) => ({
@@ -19,6 +20,7 @@ export const useTransactionStore = create<TransactionStore>((set) => ({
   totalTransactions: 0,
   currentPage: 1,
   pageSize: 10,
+  setPage: (currentPage: number) => set({ currentPage }),
 
   fetchTransactions: async (params?: TransactionsQueryParams) => {
     set({ isLoading: true, error: null });
