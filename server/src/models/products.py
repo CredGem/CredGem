@@ -192,13 +192,13 @@ class ProductSubscriptionRequest(BaseModel):
 
 # Request models
 class CreditSettingsRequest(BaseModel):
-    credit_type_id: str
-    credit_amount: float
+    credit_type_id: str = Field(description="Credit type id")
+    credit_amount: float = Field(gt=0, description="Amount of credit to add")
 
 
 class CreateProductRequest(BaseModel):
-    name: str
-    description: str
+    name: str = Field(description="Name of the product")
+    description: str = Field(description="Description of the product")
     settings: List[CreditSettingsRequest] = Field(min_length=1)
 
 

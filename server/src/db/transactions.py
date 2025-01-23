@@ -8,7 +8,7 @@ from src.models.base import PaginationRequest
 from src.models.transactions import (
     HoldStatus,
     PaginatedTransactionDBModel,
-    SubscriptionDepositPayload,
+    SubscriptionDepositRequest,
     TransactionDBModel,
     TransactionRequestBase,
     TransactionStatus,
@@ -23,7 +23,7 @@ async def create_transaction(
     transaction_request: TransactionRequestBase,
 ) -> TransactionDBModel:
     subscription_id = None
-    if isinstance(transaction_request, SubscriptionDepositPayload):
+    if isinstance(transaction_request, SubscriptionDepositRequest):
         subscription_id = transaction_request.subscription_id
 
     hold_status = None

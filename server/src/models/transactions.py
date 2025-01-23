@@ -66,7 +66,7 @@ class DepositTransactionRequest(TransactionRequestBase):
     payload: DepositTransactionRequestPayload
 
 
-class SubscriptionDepositPayload(DepositTransactionRequest):
+class SubscriptionDepositRequest(DepositTransactionRequest):
     subscription_id: str = Field(description="Id of the subscription to deposit for")
 
 
