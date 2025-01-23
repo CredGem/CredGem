@@ -7,79 +7,70 @@ import { toast } from "@/hooks/use-toast";
 import { CreditType } from "@/types/creditType";
 import { Card, CardContent } from "@/components/ui/card";
 import { generateGradientClasses } from "@/components/ui/identiry-card";
-
-
+import { Button } from "@/components/ui/button";
+import { EditCreditDialog } from "./edit-credit-dialog";
+import { AddCreditDialog } from "./add-credit-dialog";
+import { formatDate } from "@/lib/utils";
+import { Pencil, Plus } from "lucide-react";
 
 const CreditsCard = ({ type }: { type: CreditType }) => {
-  return (
-    <Card className={`max-w-md`}>
-      <CardContent className="pt-6 space-y-4">
-        {/* Icon and Title Section */}
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-full ${generateGradientClasses(type.id)} flex items-center justify-center`}>
-            <span className="text-white text-lg font-medium">r</span>
-          </div>
-          <div>
-            <h2 className="font-medium">regular</h2>
-            <p className="text-sm text-muted-foreground">Standard currency credits</p>
-          </div>
-        </div>
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
-        {/* Dates Section */}
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Created</span>
-            <span>1/12/2025</span>
+  return (
+    <>
+      <Card className="w-[350px] h-[200px]">
+        <CardContent className="pt-6 space-y-4 h-full flex flex-col">
+          {/* Icon and Title Section */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full ${generateGradientClasses(type.id)} flex items-center justify-center`}>
+                <span className="text-white text-lg font-medium">{type.name[0]}</span>
+              </div>
+              <div>
+                <h2 className="font-medium">{type.name}</h2>
+                <p className="text-sm text-muted-foreground line-clamp-2">{type.description}</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsEditOpen(true)}>
+              <Pencil className="h-4 w-4" />
+            </Button>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Last Modified</span>
-            <span>1/12/2025</span>
+
+          {/* Dates Section */}
+          <div className="space-y-2 text-sm mt-auto">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Created</span>
+              <span>{formatDate(type.created_at)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Last Modified</span>
+              <span>{formatDate(type.updated_at)}</span>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      <EditCreditDialog
+        isOpen={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        creditType={type}
+      />
+    </>
   );
 };
 
 export default function Credits() {
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const { 
-    transactions, 
-    isLoading, 
-    error, 
-    fetchTransactions,
-    totalTransactions,
-    currentPage,
-    pageSize
-  } = useTransactionStore();
-
-  const { creditTypes, fetchCreditTypes, getCreditTypeName } = useWalletStore();
-  const [selectedCreditType, setSelectedCreditType] = useState<string>("");
-  const [selectedTimeRange, setSelectedTimeRange] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: "created_at",
-    direction: "descending",
-  });
-
-  const [enrichedTransactions, setEnrichedTransactions] = useState<Transaction[]>([]);
+    creditTypes, 
+    fetchCreditTypes,
+    isLoading,
+    error
+  } = useWalletStore();
 
   useEffect(() => {
-    const _enrichedTransactions = transactions.map((transaction) => ({
-      ...transaction,
-      credit_type: creditTypes.find((type) => type.id === transaction.credit_type_id)?.name || "Unknown",
-    }));
-    setEnrichedTransactions(_enrichedTransactions);
-  }, [transactions, creditTypes]);
-
-    useEffect(() => {
     const loadCreditTypes = async () => {
       try {
-        const types = await fetchCreditTypes();
-        const creditTypesRes = {};
-        types.forEach((type) => {
-            creditTypesRes[type.id] = type;
-        });
-        setCreditTypes(creditTypesRes);
+        await fetchCreditTypes();
       } catch (error) {
         toast({
           title: "Error loading credit types",
@@ -91,12 +82,19 @@ export default function Credits() {
     loadCreditTypes();
   }, []);
 
-
   return (
     <div className={`h-[100vh] flex flex-col gap-4 p-10`}>
       <div className={`flex flex-col relative gap-4 p-4 rounded-lg`}>
-        <h1 className="text-2xl font-bold">Credits</h1>
-        <p className="text-sm text-muted-foreground">View all your credits</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Credits</h1>
+            <p className="text-sm text-muted-foreground">View all your credits</p>
+          </div>
+          <Button onClick={() => setIsAddOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Credit Type
+          </Button>
+        </div>
       </div>
       <div className="container mx-auto py-2">
         {isLoading ? (
@@ -104,10 +102,9 @@ export default function Credits() {
             <Skeleton className="w-full h-full" />
           </div>
         ) : error ? (
-          <div className="text-red-500">Error loading wallets: {error}</div>
+          <div className="text-red-500">Error loading credit types: {error}</div>
         ) : (
           <div>
-            
             <div className="flex flex-wrap gap-4">
               {creditTypes.map((type) => (
                 <CreditsCard key={type.id} type={type} />
@@ -116,6 +113,7 @@ export default function Credits() {
           </div>
         )}
       </div>
+      <AddCreditDialog isOpen={isAddOpen} onOpenChange={setIsAddOpen} />
     </div>
   )
 }

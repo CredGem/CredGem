@@ -3,6 +3,7 @@ import { Wallet, CreateWalletPayload, WalletsQueryParams, WalletDetails, Transac
 import { CreditType, CreateCreditTypePayload, UpdateCreditTypePayload } from '../types/creditType';
 import { walletApi } from '../api/walletApi';
 import { creditTypeApi } from '../api/creditTypeApi';
+import { toast } from '@/hooks/use-toast';
 
 interface WalletStore {
   wallets: Wallet[];
@@ -31,7 +32,7 @@ interface WalletStore {
     resetSpent?: boolean
   ) => Promise<void>;
   createCreditType: (payload: CreateCreditTypePayload) => Promise<CreditType>;
-  updateCreditType: (id: string, payload: UpdateCreditTypePayload) => Promise<void>;
+  updateCreditType: (id: string, data: { name: string; description: string }) => Promise<void>;
   deleteCreditType: (id: string) => Promise<void>;
   setPage: (currentPage: number) => void;
 }
@@ -207,19 +208,42 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     }
   },
 
-  updateCreditType: async (id: string, payload: UpdateCreditTypePayload) => {
-    set({ isLoading: true, error: null });
-    const { name, description } = payload;
+  updateCreditType: async (id: string, data: { name: string; description: string }) => {
     try {
-      const updatedCreditType = await creditTypeApi.updateCreditType(id, name, description);
-      set((state) => ({
-        creditTypes: state.creditTypes.map((ct) =>
-          ct.id === id ? updatedCreditType : ct
-        ),
-        isLoading: false
-      }));
+      // Create optimistic update
+      const prevCreditTypes = get().creditTypes;
+      const updatedCreditTypes = prevCreditTypes.map(type => 
+        type.id === id ? { ...type, ...data, updated_at: new Date().toISOString() } : type
+      );
+      
+      // Apply optimistic update
+      set({ creditTypes: updatedCreditTypes });
+
+      // Make API call
+      const updatedCreditType = await creditTypeApi.updateCreditType(id, data.name, data.description);
+      
+      // Update with server response (in case server modified something)
+      set({
+        creditTypes: prevCreditTypes.map(type => 
+          type.id === id ? updatedCreditType : type
+        )
+      });
+
+      toast({
+        title: "Credit type updated",
+        description: "Successfully updated credit type",
+      });
     } catch (error) {
-      set({ error: 'Failed to update credit type', isLoading: false });
+      // Revert to previous state on error
+      const prevCreditTypes = get().creditTypes;
+      set({ creditTypes: prevCreditTypes });
+      
+      toast({
+        title: "Error updating credit type",
+        description: error instanceof Error ? error.message : "Failed to update credit type",
+        variant: "destructive",
+      });
+      throw error;
     }
   },
 
