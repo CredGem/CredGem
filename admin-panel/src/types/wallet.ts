@@ -38,7 +38,7 @@ export interface CreateWalletPayload {
 
 export interface PaginatedResponse<T> {
   data: T[];
-  total: number;
+  total_count: number;
   page: number;
   page_size: number;
 }

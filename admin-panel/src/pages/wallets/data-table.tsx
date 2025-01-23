@@ -5,7 +5,6 @@ import {
   flexRender,
   getCoreRowModel,
   useReactTable,
-  getPaginationRowModel,
   SortingState,
   getSortedRowModel,
   getFilteredRowModel,
@@ -28,12 +27,22 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   onAddWallet: () => void
+  currentPage: number
+  pageSize: number
+  totalCount: number
+  onPageChange: (page: number) => void
+  loadingSpinner?: React.ReactNode
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   onAddWallet,
+  currentPage,
+  pageSize,
+  totalCount,
+  onPageChange,
+  loadingSpinner,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState('')
@@ -43,7 +52,6 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -54,6 +62,8 @@ export function DataTable<TData, TValue>({
     onGlobalFilterChange: setGlobalFilter,
   })
 
+  const hasNextPage = currentPage * pageSize < totalCount;
+
   return (
     <div>
       <div className="flex items-center py-4">
@@ -63,9 +73,12 @@ export function DataTable<TData, TValue>({
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-sm"
         />
-        <Button className="ml-auto" onClick={onAddWallet}>
-          <PlusIcon /> Add Wallet
-        </Button>
+        <div className="flex items-center gap-2 ml-auto">
+          {loadingSpinner}
+          <Button onClick={onAddWallet}>
+            <PlusIcon /> Add Wallet
+          </Button>
+        </div>
       </div>
       <div className="rounded-md border">
         <Table>
@@ -115,16 +128,16 @@ export function DataTable<TData, TValue>({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
           >
             Previous
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={!hasNextPage}
           >
             Next
           </Button>

@@ -5,10 +5,7 @@ import { columns } from "./columns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddWalletDialog } from "./add-wallet";
 import WalletsAnalytics from "./analytics";
-
-
-
-
+import { Loader2 } from "lucide-react";
 
 export default function Wallets() {
   const { 
@@ -16,21 +13,34 @@ export default function Wallets() {
     isLoading, 
     error,
     fetchWallets,
+    totalWallets,
+    currentPage,
+    pageSize,
+    setPage
   } = useWalletStore();
   
   const [filterValue, setFilterValue] = React.useState("");
-  const [page, setPage] = React.useState(1);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 
-
   useEffect(() => {
-    fetchWallets({
-      page: page,
-      page_size: rowsPerPage,
-      search: filterValue || undefined
-    });
-  }, [fetchWallets, page, rowsPerPage, filterValue]);
+    const fetchData = async () => {
+      await fetchWallets({
+        page: currentPage,
+        page_size: pageSize,
+        search: filterValue || undefined
+      });
+      if (isFirstLoad) {
+        setIsFirstLoad(false);
+      }
+    };
+
+    fetchData();
+  }, [fetchWallets, currentPage, pageSize, filterValue]);
+
+  const handlePageChange = (page: number) => {
+    setPage(page);
+  };
 
   return (
     <div className={`h-[100vh] flex flex-col gap-4 p-10`}>
@@ -40,7 +50,7 @@ export default function Wallets() {
       </div>
       <WalletsAnalytics/>
       <div className="container mx-auto py-2">
-        {isLoading ? (
+        {isFirstLoad && isLoading ? (
           <div className="w-full h-48 flex items-center justify-center">
             <Skeleton className="w-full h-full" />
           </div>
@@ -51,6 +61,11 @@ export default function Wallets() {
             columns={columns} 
             data={wallets} 
             onAddWallet={() => setIsOpen(true)}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalCount={totalWallets}
+            onPageChange={handlePageChange}
+            loadingSpinner={isLoading && !isFirstLoad ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           />
         )}
       </div>

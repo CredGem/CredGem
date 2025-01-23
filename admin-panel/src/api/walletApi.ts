@@ -1,9 +1,11 @@
 import { axiosInstance } from "./axiosInstance";
-import { WalletDetails, WalletDepositRequest, WalletDebitRequest, WalletAdjustRequest } from "../types/wallet";
+import { WalletDetails, WalletDepositRequest, WalletDebitRequest, WalletAdjustRequest, WalletsQueryParams, PaginatedResponse, Wallet } from "../types/wallet";
 
 export const walletApi = {
-  getWallets: async () => {
-    const response = await axiosInstance.get<WalletDetails[]>("/wallets");
+  getWallets: async (params?: WalletsQueryParams) => {
+    const response = await axiosInstance.get<PaginatedResponse<Wallet>>("/wallets", {
+      params,
+    });
     return response.data;
   },
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Wallet, CreateWalletPayload, WalletsQueryParams, WalletDetails, TransactionType, WalletDepositRequest, WalletDebitRequest, WalletAdjustRequest } from '../types/wallet';
+import { Wallet, CreateWalletPayload, WalletsQueryParams, WalletDetails, TransactionType, WalletDepositRequest, WalletDebitRequest, WalletAdjustRequest, PaginatedResponse } from '../types/wallet';
 import { CreditType, CreateCreditTypePayload, UpdateCreditTypePayload } from '../types/creditType';
 import { walletApi } from '../api/walletApi';
 import { creditTypeApi } from '../api/creditTypeApi';
@@ -33,6 +33,7 @@ interface WalletStore {
   createCreditType: (payload: CreateCreditTypePayload) => Promise<CreditType>;
   updateCreditType: (id: string, payload: UpdateCreditTypePayload) => Promise<void>;
   deleteCreditType: (id: string) => Promise<void>;
+  setPage: (currentPage: number) => void;
 }
 
 export const useWalletStore = create<WalletStore>((set, get) => ({
@@ -44,6 +45,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
   totalWallets: 0,
   currentPage: 1,
   pageSize: 10,
+  setPage: (currentPage: number) => set({ currentPage }),
 
   fetchWallets: async (params?: WalletsQueryParams) => {
     set({ isLoading: true, error: null });
@@ -86,13 +88,14 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     try {
       const newWallet = await walletApi.createWallet(name, context);
       set((state) => ({
-        wallets: [...state.wallets, newWallet],
+        wallets: [newWallet,...state.wallets],
         totalWallets: state.totalWallets + 1,
         isLoading: false
       }));
       return newWallet;
     } catch (error) {
       set({ error: 'Failed to create wallet', isLoading: false });
+      throw error;
     }
   },
 
@@ -132,7 +135,6 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
   ) => {
     set({ isLoading: true, error: null });
     try {
-      
       switch (type) { 
         case 'deposit':
           const dataWalletDeposit: WalletDepositRequest = {
@@ -201,6 +203,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       return newCreditType;
     } catch (error) {
       set({ error: 'Failed to create credit type', isLoading: false });
+      throw error;
     }
   },
 
@@ -231,5 +234,5 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     } catch (error) {
       set({ error: 'Failed to delete credit type', isLoading: false });
     }
-  },
+  }
 })); 
