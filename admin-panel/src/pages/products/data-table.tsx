@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button"
-
 import {
   ColumnDef,
   flexRender,
@@ -9,7 +8,6 @@ import {
   getSortedRowModel,
   getFilteredRowModel,
 } from "@tanstack/react-table"
-
 import {
   Table,
   TableBody,
@@ -26,29 +24,26 @@ import { useNavigate } from "react-router-dom"
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
-  onAddWallet: () => void
+  onAddProduct: () => void
   currentPage: number
   pageSize: number
   totalCount: number
   onPageChange: (page: number) => void
   loadingSpinner?: React.ReactNode
-  searchQuery: string
-  onSearchQueryChange: (value: string) => void
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  onAddWallet,
+  onAddProduct,
   currentPage,
   pageSize,
   totalCount,
   onPageChange,
   loadingSpinner,
-  searchQuery,
-  onSearchQueryChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
+  const [globalFilter, setGlobalFilter] = useState('')
   const navigate = useNavigate();
 
   const table = useReactTable({
@@ -60,7 +55,9 @@ export function DataTable<TData, TValue>({
     getFilteredRowModel: getFilteredRowModel(),
     state: {
       sorting,
+      globalFilter,
     },
+    onGlobalFilterChange: setGlobalFilter,
   })
 
   const hasNextPage = currentPage * pageSize < totalCount;
@@ -69,15 +66,15 @@ export function DataTable<TData, TValue>({
     <div>
       <div className="flex items-center py-4">
         <Input
-          placeholder="Search wallets..."
-          value={searchQuery}
-          onChange={(event) => onSearchQueryChange(event.target.value)}
+          placeholder="Search products..."
+          value={globalFilter}
+          onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-sm"
         />
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           {loadingSpinner}
-          <Button onClick={onAddWallet}>
-            <PlusIcon /> Add Wallet
+          <Button onClick={onAddProduct}>
+            <PlusIcon className="mr-2 h-4 w-4" /> Add Product
           </Button>
         </div>
       </div>
@@ -107,7 +104,7 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  onClick={() => navigate(`/wallets/${row.getValue('id')}`)}
+                  onClick={() => navigate(`/products/${row.getValue('id')}`)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -146,4 +143,4 @@ export function DataTable<TData, TValue>({
       </div>
     </div>
   )
-}
+} 

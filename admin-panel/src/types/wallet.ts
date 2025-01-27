@@ -38,7 +38,7 @@ export interface CreateWalletPayload {
 
 export interface PaginatedResponse<T> {
   data: T[];
-  total: number;
+  total_count: number;
   page: number;
   page_size: number;
 }
@@ -99,8 +99,8 @@ export interface TransactionsQueryParams {
   credit_type_id?: string;
   wallet_id?: string;
   context?: string;
-  page?: string;
-  page_size?: string;
+  page?: number;
+  page_size?: number;
   start_date?: string;
   end_date?: string;
   search?: string;

@@ -6,26 +6,11 @@ import { Transaction, TransactionsQueryParams } from "@/types/wallet";
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
 import { toast } from "@/hooks/use-toast";
-import { CreditType } from "@/types/creditType";
-
-// Add debounce hook
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
+import { Loader2 } from "lucide-react";
+import { useDebounce } from "@/lib/utils";
 
 export default function Transactions() {
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const { 
     transactions, 
     isLoading, 
@@ -33,10 +18,11 @@ export default function Transactions() {
     fetchTransactions,
     totalTransactions,
     currentPage,
-    pageSize
+    pageSize,
+    setPage
   } = useTransactionStore();
 
-  const { creditTypes, fetchCreditTypes, getCreditTypeName } = useWalletStore();
+  const { creditTypes, fetchCreditTypes } = useWalletStore();
   const [selectedCreditType, setSelectedCreditType] = useState<string | undefined>(undefined);
   const [selectedTimeRange, setSelectedTimeRange] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -108,10 +94,25 @@ export default function Transactions() {
       }
 
       await fetchTransactions(params);
+      if (isFirstLoad) {
+        setIsFirstLoad(false);
+      }
     };
 
     fetchData();
   }, [fetchTransactions, selectedCreditType, selectedTimeRange, debouncedSearchQuery, currentPage, pageSize]);
+
+  const handlePageChange = (page: number) => {
+    setPage(page);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    // Reset to first page when searching
+    if (currentPage !== 1) {
+      setPage(1);
+    }
+  };
 
   return (
     <div className={`h-[100vh] flex flex-col gap-4 p-10`}>
@@ -120,12 +121,12 @@ export default function Transactions() {
         <p className="text-sm text-muted-foreground">View all your transactions</p>
       </div>
       <div className="container mx-auto py-2">
-        {isLoading ? (
+        {isFirstLoad && isLoading ? (
           <div className="w-full h-48 flex items-center justify-center">
             <Skeleton className="w-full h-full" />
           </div>
         ) : error ? (
-          <div className="text-red-500">Error loading wallets: {error}</div>
+          <div className="text-red-500">Error loading transactions: {error}</div>
         ) : (
           <DataTable 
             columns={columns} 
@@ -134,12 +135,17 @@ export default function Transactions() {
             credit_type_id={selectedCreditType}
             onCreditTypeChange={setSelectedCreditType}
             searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
+            onSearchQueryChange={handleSearch}
             timePeriod={selectedTimeRange}
             onTimePeriodChange={setSelectedTimeRange}
+            loadingSpinner={isLoading && !isFirstLoad ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalCount={totalTransactions}
+            onPageChange={handlePageChange}
           />
         )}
       </div>
     </div>
-  )
+  );
 }

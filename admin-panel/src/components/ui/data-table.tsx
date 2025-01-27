@@ -1,15 +1,10 @@
-import { Button } from "@/components/ui/button"
-
+import { useState } from "react";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
-  SortingState,
-  getSortedRowModel,
-  getFilteredRowModel,
-} from "@tanstack/react-table"
-
+} from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -17,29 +12,25 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { useState } from "react"
-import { Input } from "@/components/ui/input"
-import { PlusIcon } from "lucide-react"
-import { useNavigate } from "react-router-dom"
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  onAddWallet: () => void
-  currentPage: number
-  pageSize: number
-  totalCount: number
-  onPageChange: (page: number) => void
-  loadingSpinner?: React.ReactNode
-  searchQuery: string
-  onSearchQueryChange: (value: string) => void
+export interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  currentPage?: number;
+  pageSize?: number;
+  totalCount?: number;
+  onPageChange?: (page: number) => void;
+  searchQuery?: string;
+  onSearchQueryChange?: (value: string) => void;
+  loadingSpinner?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  onAddWallet,
   currentPage,
   pageSize,
   totalCount,
@@ -48,39 +39,33 @@ export function DataTable<TData, TValue>({
   searchQuery,
   onSearchQueryChange,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const navigate = useNavigate();
-
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      sorting,
-    },
-  })
+  });
 
-  const hasNextPage = currentPage * pageSize < totalCount;
+  const showPagination = currentPage !== undefined && 
+    pageSize !== undefined && 
+    totalCount !== undefined && 
+    onPageChange !== undefined;
 
   return (
-    <div>
-      <div className="flex items-center py-4">
-        <Input
-          placeholder="Search wallets..."
-          value={searchQuery}
-          onChange={(event) => onSearchQueryChange(event.target.value)}
-          className="max-w-sm"
-        />
-        <div className="flex items-center gap-2 ml-auto">
-          {loadingSpinner}
-          <Button onClick={onAddWallet}>
-            <PlusIcon /> Add Wallet
-          </Button>
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        {onSearchQueryChange && (
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Search..."
+              value={searchQuery ?? ""}
+              onChange={(event) => onSearchQueryChange(event.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+        )}
+        {loadingSpinner}
       </div>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -96,7 +81,7 @@ export function DataTable<TData, TValue>({
                             header.getContext()
                           )}
                     </TableHead>
-                  )
+                  );
                 })}
               </TableRow>
             ))}
@@ -107,25 +92,33 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  onClick={() => navigate(`/wallets/${row.getValue('id')}`)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   No results.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-        <div className="flex items-center justify-end space-x-2 py-4">
+      </div>
+
+      {showPagination && (
+        <div className="flex items-center justify-end space-x-2">
           <Button
             variant="outline"
             size="sm"
@@ -138,12 +131,12 @@ export function DataTable<TData, TValue>({
             variant="outline"
             size="sm"
             onClick={() => onPageChange(currentPage + 1)}
-            disabled={!hasNextPage}
+            disabled={currentPage * pageSize >= totalCount}
           >
             Next
           </Button>
         </div>
-      </div>
+      )}
     </div>
-  )
-}
+  );
+} 

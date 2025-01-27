@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   Select,
@@ -16,19 +16,9 @@ import {
 import { ActiveWalletsChart } from './active-wallets-chart';
 import { AverageTransactionsPerWalletChart } from './average-transactions-per-wallet-chart';
 import { MostActiveWallets } from './most-active-wallets';
+import { useInsightsStore } from '@/store/useInsightsStore';
 
 export type TimeWindow = 'day' | 'week' | 'month';
-
-// Dummy data generator
-const generateDummyData = (timeWindow: TimeWindow) => {
-  const points = timeWindow === 'day' ? 24 : timeWindow === 'week' ? 7 : 30;
-  return Array.from({ length: points }, (_, i) => ({
-    time: timeWindow === 'day' ? `${i}:00` : 
-          timeWindow === 'week' ? `Day ${i + 1}` : 
-          `Day ${i + 1}`,
-    value: Math.floor(Math.random() * 1000)
-  }));
-};
 
 const generateAverageTransactionsPerWalletData = () => {
   return {wallets: "wallets", transactions: Math.floor(Math.random() * 1000), fill: "var(--color-safari)"}
@@ -71,8 +61,37 @@ const AnalyticsCard = ({ title, data }: {
 
 export default function WalletsAnalytics() {
   const [timeWindow, setTimeWindow] = useState<TimeWindow>('day');
+  const { walletActivity, fetchWalletActivity } = useInsightsStore();
 
-  const activeWalletsData = generateDummyData(timeWindow);
+  useEffect(() => {
+    const now = new Date();
+    const endDate = now.toISOString();
+    let startDate = new Date(now);
+    
+    switch (timeWindow) {
+      case 'day':
+        startDate.setDate(startDate.getDate() - 1);
+        break;
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+    }
+    startDate.setHours(0, 0, 0, 0);
+
+    fetchWalletActivity(startDate.toISOString(), endDate, timeWindow);
+  }, [timeWindow, fetchWalletActivity]);
+
+  // Transform wallet activity data for the chart
+  const activeWalletsData = walletActivity?.points?.map(item => ({
+    time: timeWindow === 'day' ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) :
+         timeWindow === 'week' ? new Date(item.timestamp).toLocaleDateString([], { weekday: 'short' }) :
+         new Date(item.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+    value: item.total_transactions
+  })) || [];
+
   const avgTransactionsData = generateAverageTransactionsPerWalletData();
   const mostActiveWalletsData = generateMostActiveWalletsData();
 
@@ -114,6 +133,7 @@ export default function WalletsAnalytics() {
     </div>
   );
 }
+
 function uuidv4() {
     return crypto.randomUUID();
 }
