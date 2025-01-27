@@ -27,7 +27,7 @@ interface WalletStore {
   subscriptions: ProductSubscription[];
   totalCount: number;
   fetchWallets: (params?: WalletsQueryParams) => Promise<void>;
-  fetchWallet: (id: string) => Promise<void>;
+  fetchWallet: (id: string) => Promise<WalletDetails | null>;
   fetchCreditTypes: () => Promise<void>;
   fetchSubscriptions: (walletId: string, params: { page: number; page_size: number }) => Promise<void>;
   createWallet: (payload: CreateWalletPayload) => Promise<WalletDetails>;
@@ -80,13 +80,15 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     }
   },
 
-  fetchWallet: async (id: string) => {
+  fetchWallet: async (id: string): Promise<WalletDetails | null> => {
     set({ isLoading: true, error: null });
     try {
       const wallet = await walletApi.getWallet(id);
       set({ selectedWallet: wallet, isLoading: false });
+      return wallet;
     } catch (error) {
       set({ error: 'Failed to fetch wallet', isLoading: false });
+      return null;
     }
   },
 
