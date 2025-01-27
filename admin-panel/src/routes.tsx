@@ -3,7 +3,7 @@ import { Layout } from "./components/Layout";
 import Wallets from "./pages/wallets/wallets";
 import Transactions from "./pages/transactions/transactions";
 import WalletDetails from "./pages/wallet-details/wallet-details";
-import Dashboard from "./pages/dashboard";
+import Dashboard from "./pages/dashboard/dashboard";
 import Playground from "./pages/playground/playground";
 import Credits from "./pages/credits/credits";
 

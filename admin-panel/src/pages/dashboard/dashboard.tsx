@@ -15,7 +15,7 @@ import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis
 import { Skeleton } from "@/components/ui/skeleton";
 import { BackgroundVariantsDark, BackgroundVariantsLight } from "@/components/background-varients";
 import { useTheme } from "@/components/theme-provider";
-
+import { DashboardCard } from "./dashboard-card";
 
 
 
@@ -342,29 +342,6 @@ function CircleChartCard() {
 }
 
 
-interface DashboardCardProps {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ReactNode;
-}
-
-export function DashboardCard({ title, value, description, icon }: DashboardCardProps) {
-  return (
-    <Card className="flex-1">
-      <CardHeader className="p-2">
-        <CardTitle className="flex items-center gap-2">
-          {icon}
-          <span className="text-sm font-medium truncate">{title}</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="py-1 px-2">
-        <p className="text-xl font-bold truncate">{value}</p>
-        <p className="text-xs text-muted-foreground truncate py-1">{description}</p>
-      </CardContent>
-    </Card>
-  )
-}
 
 
 
@@ -396,13 +373,13 @@ export default function Dashboard() {
     <div className={`h-[100vh] flex flex-col gap-4 p-10`}>
       <div className={`flex flex-col relative gap-4 p-4 rounded-lg ${cardBackgroundVariant}`}>
         <h1 className="text-2xl font-bold">CredGem Insights</h1>
-        <p className="text-sm text-muted-foreground">Welcome to your dashboard</p>
+        <p className="text-sm text-muted-foreground">Activity Overview</p>
       </div>
       <div className="flex flex-row gap-4 w-full rounded-lg">
-        <DashboardCard title="Total Wallets" value={totalWallets.toString()} description="Total number of wallets" icon={<Wallet className="w-4 h-4 text-ring" />} />
-        <DashboardCard title="Total Transactions" value={totalTransactions.toString()} description="Total number of transactions" icon={<ArrowLeftRight className="w-4 h-4 text-ring" />} />
-        <DashboardCard title="Total Deposits" value={totalDeposits.toString()} description="Total number of deposits" icon={<ArrowDown className="w-4 h-4 text-ring" />} />
-        <DashboardCard title="Total Debits" value={totalDebits.toString()} description="Total number of debits" icon={<ArrowUp className="w-4 h-4 text-ring" />} />
+        <DashboardCard title="Active Wallets" value={totalWallets.toString()} icon={<Wallet className="w-4 h-4 text-ring" />} changeValue={10.5} redirectTo="/wallets" />
+        <DashboardCard title="Total Transactions" value={totalTransactions.toString()} icon={<ArrowLeftRight className="w-4 h-4 text-ring" />} changeValue={10.5} redirectTo="/transactions" />
+        <DashboardCard title="Total Deposits" value={totalDeposits.toString()} icon={<ArrowDown className="w-4 h-4 text-ring" />} changeValue={10.5} redirectTo="/transactions" />
+        <DashboardCard title="Total Debits" value={totalDebits.toString()} icon={<ArrowUp className="w-4 h-4 text-ring" />} changeValue={39.5} redirectTo="/transactions" />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <CircleChartCard />
