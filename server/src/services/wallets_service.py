@@ -310,7 +310,7 @@ async def _hold_transaction_handler(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=BALANCE_NOT_FOUND_ERROR
         )
-    if updated_balance.held < 0:
+    if updated_balance.held < 0 or updated_balance.available < 0:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail=INSUFFICIENT_BALANCE_ERROR,
