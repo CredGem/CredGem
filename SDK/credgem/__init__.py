@@ -79,7 +79,7 @@ class CredGemClient:
             A DrawCredits context manager
         """
         return DrawCredits(
-            client=self.transactions,
+            client=self,
             wallet_id=wallet_id,
             credit_type_id=credit_type_id,
             amount=amount,

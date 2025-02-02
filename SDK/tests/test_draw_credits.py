@@ -192,3 +192,55 @@ async def test_exception_auto_release(client, funded_wallet, credit_type):
 #     # Verify balance hasn't changed after second attempt
 #     final_balance = await client.wallets.get(funded_wallet.id)
 #     assert initial_balance == final_balance 
+
+
+@pytest.mark.asyncio
+async def test_model_optional_fields(client, credit_type):
+    """Test that models handle optional fields correctly."""
+    # Test wallet creation with minimal fields
+    wallet = await client.wallets.create(
+        name=f"Test Wallet {datetime.now().timestamp()}"
+    )
+    assert wallet.context == {}  # Should use default empty dict
+    assert wallet.description is None  # Optional field should be None
+    assert isinstance(wallet.balances, list)  # Should be empty list
+    assert len(wallet.balances) == 0
+
+    # Test wallet with all fields
+    wallet_with_context = await client.wallets.create(
+        name=f"Test Wallet {datetime.now().timestamp()}",
+        description="Test description",
+        context={"test": True}
+    )
+    assert wallet_with_context.description == "Test description"
+    assert wallet_with_context.context == {"test": True}
+
+
+@pytest.mark.asyncio
+async def test_model_extra_fields(client, credit_type):
+    """Test that models handle extra fields from server gracefully."""
+    wallet = await client.wallets.create(
+        name=f"Test Wallet {datetime.now().timestamp()}"
+    )
+    
+    # Verify the model works even with standard fields
+    assert wallet.id
+    assert wallet.name
+    assert wallet.created_at
+    assert wallet.updated_at
+
+    # Add funds to test Balance model
+    await client.transactions.deposit(
+        wallet_id=wallet.id,
+        amount=Decimal("100.00"),
+        credit_type_id=credit_type.id,
+        description="Test deposit",
+        issuer="test_system"
+    )
+
+    # Get wallet info and verify Balance objects work
+    wallet_info = await client.wallets.get(wallet.id)
+    balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
+    assert balance.available == 100.0
+    assert balance.held == 0.0
+    assert balance.spent == 0.0 

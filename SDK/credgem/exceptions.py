@@ -1,23 +1,28 @@
 class CredGemError(Exception):
-    """Base exception for all CredGem SDK errors"""
+    """Base exception for all CredGem errors."""
     pass
 
 
 class InsufficientCreditsError(CredGemError):
-    """Raised when there are insufficient credits for an operation"""
+    """Raised when attempting to hold or debit more credits than are available."""
     pass
 
 
 class InvalidRequestError(CredGemError):
-    """Raised when the request is invalid"""
+    """Raised when the request is invalid."""
     pass
 
 
 class AuthenticationError(CredGemError):
-    """Raised when there are authentication issues"""
+    """Raised when authentication fails."""
     pass
 
 
-class APIError(CredGemError):
-    """Raised when the API returns an error"""
+class NotFoundError(CredGemError):
+    """Raised when a resource is not found."""
+    pass
+
+
+class ServerError(CredGemError):
+    """Raised when the server returns a 5xx error."""
     pass 

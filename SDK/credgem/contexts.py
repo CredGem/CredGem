@@ -1,12 +1,10 @@
-import uuid
 import logging
-from typing import Optional, Dict, Any, Tuple, Awaitable
+from typing import Dict, Optional, Any, TYPE_CHECKING
 
-from httpx import HTTPStatusError, HTTPError
-
-from credgem.api.base import BaseAPI
 from credgem.api.transactions import TransactionResponse
-from credgem.exceptions import InsufficientCreditsError
+
+if TYPE_CHECKING:
+    from credgem import CredGemClient
 
 logger = logging.getLogger(__name__)
 
@@ -23,15 +21,15 @@ class DrawCredits:
     
     def __init__(
         self,
-        client,
+        client: "CredGemClient",
         wallet_id: str,
         credit_type_id: str,
-        amount: Optional[float] = None,
-        description: str = "",
-        issuer: str = "",
+        amount: float,
+        description: str,
+        issuer: str,
+        context: Optional[Dict[str, Any]] = None,
         external_transaction_id: Optional[str] = None,
-        context: Optional[Dict] = None,
-        skip_hold: bool = False
+        skip_hold: bool = False,
     ):
         """Initialize the DrawCredits context.
         
@@ -52,129 +50,76 @@ class DrawCredits:
         self.amount = amount
         self.description = description
         self.issuer = issuer
+        self.context = context
         self.external_transaction_id = external_transaction_id
-        self.context = context or {}
         self.skip_hold = skip_hold
-        
-        self.hold_id = None
-        self.debit_amount = None
-    
-    async def _handle_api_call(self, coro: Awaitable[TransactionResponse]) -> Tuple[bool, Optional[TransactionResponse]]:
-        """Handle API call with proper error handling."""
-        try:
-            response = await coro
-            print("debug response", response)
-            return True, response
-        except HTTPError as e:
-            print("debug error response", e.response.status_code, e.response.json())
-            if e.response.status_code == 409:
-                # 409 means the operation was already completed
-                # Just return success without the response since we get an error message
-                return True, None
-            elif e.response.status_code == 402:
-                # 422 means insufficient credits
-                raise InsufficientCreditsError("Insufficient credits available")
-            else:
-                raise
-    
-    async def hold(self):
-        """Create a hold on the credits."""
-        if self.skip_hold:
-            return
-        
-        if self.hold_id:
-            return
-        
-        if not self.amount:
-            raise ValueError("Amount is required for hold operation")
-        
-        logger.info(
-            f"Creating hold for {self.amount} credits for wallet {self.wallet_id}"
-        )
-        success, response = await self._handle_api_call(
-            self.client.hold(
-                wallet_id=self.wallet_id,
-                amount=self.amount,
-                credit_type_id=self.credit_type_id,
-                description=self.description,
-                issuer=self.issuer,
-                external_transaction_id=f"hold_{self.external_transaction_id}",
-                # idempotency_key=f"hold_{self.transaction_id}",
-                context=self.context
-            )
-        )
-        if success and response:
-            self.hold_id = response.id
-    
-    async def debit(self, amount: Optional[float] = None, context: Optional[Dict] = None):
-        """Debit credits from the wallet.
-        
-        Args:
-            amount: Optional amount to debit. If not provided, uses the hold amount.
-            context: Optional context to override the initial context.
-        """
-        if not self.skip_hold and not amount and not self.amount:
-            raise ValueError("Amount is required for debit operation")
-        
-        debit_amount = amount or self.amount
-        debit_context = {**self.context, **(context or {})}
-        
-        logger.info(
-            f"Debiting {debit_amount} credits from wallet {self.wallet_id}"
-        )
-        success, response = await self._handle_api_call(
-            self.client.debit(
-                wallet_id=self.wallet_id,
-                amount=debit_amount,
-                credit_type_id=self.credit_type_id,
-                description=self.description,
-                issuer=self.issuer,
-                hold_transaction_id=self.hold_id,
-                external_transaction_id=f"debit_{self.external_transaction_id}",
-                context=debit_context
-            )
-        )
-        if success:
-            self.debit_amount = debit_amount
-    
-    async def release(self, context: Optional[Dict] = None):
-        """Release held credits.
-        
-        Args:
-            context: Optional context to override the initial context.
-        """
-        if not self.hold_id:
-            return
-        
-        release_context = {**self.context, **(context or {})}
-        
-        logger.info(
-            f"Releasing hold {self.hold_id} for wallet {self.wallet_id}"
-        )
-        success, _ = await self._handle_api_call(
-            self.client.release(
-                wallet_id=self.wallet_id,
-                hold_transaction_id=self.hold_id,
-                credit_type_id=self.credit_type_id,
-                description=self.description,
-                issuer=self.issuer,
-                external_transaction_id=f"release_{self.external_transaction_id}",
-                context=release_context
-            )
-        )
-        if success:
-            self.hold_id = None
+        self._hold_transaction: Optional[TransactionResponse] = None
+        self._debited = False
     
     async def __aenter__(self):
-        """Enter the context and create a hold if needed."""
-        await self.hold()
+        """Create a hold on the credits if not skipping hold."""
+        if not self.skip_hold:
+            try:
+                self._hold_transaction = await self.client.transactions.hold(
+                    wallet_id=self.wallet_id,
+                    amount=self.amount,
+                    credit_type_id=self.credit_type_id,
+                    description=self.description,
+                    issuer=self.issuer,
+                    context=self.context,
+                    external_transaction_id=f"{self.external_transaction_id}_hold" if self.external_transaction_id else None,
+                )
+            except Exception as e:
+                logger.error(f"Failed to create hold: {e}")
+                raise
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Exit the context and handle cleanup.
-        
-        If an exception occurred or debit wasn't called, release the hold.
-        """
-        if self.hold_id and not self.debit_amount:
-            await self.release()
+        """Release the hold if it wasn't debited and not skipping hold."""
+        if self._hold_transaction and not self._debited:
+            try:
+                await self.client.transactions.release(
+                    wallet_id=self.wallet_id,
+                    hold_transaction_id=self._hold_transaction.id,
+                    credit_type_id=self.credit_type_id,
+                    description=f"Auto-release of {self.description}",
+                    issuer=self.issuer,
+                    context=self.context,
+                    external_transaction_id=f"{self.external_transaction_id}_release" if self.external_transaction_id else None,
+                )
+            except Exception as e:
+                logger.error(f"API call failed: {e}")
+    
+    async def debit(self) -> TransactionResponse:
+        """Debit the held credits or perform direct debit if skip_hold is True."""
+        try:
+            if self.skip_hold:
+                return await self.client.transactions.debit(
+                    wallet_id=self.wallet_id,
+                    amount=self.amount,
+                    credit_type_id=self.credit_type_id,
+                    description=self.description,
+                    issuer=self.issuer,
+                    context=self.context,
+                    external_transaction_id=f"{self.external_transaction_id}_debit" if self.external_transaction_id else None,
+                )
+            else:
+                if not self._hold_transaction:
+                    raise ValueError("No active hold to debit")
+
+                response = await self.client.transactions.debit(
+                    wallet_id=self.wallet_id,
+                    amount=self.amount,
+                    credit_type_id=self.credit_type_id,
+                    description=self.description,
+                    issuer=self.issuer,
+                    context=self.context,
+                    external_transaction_id=f"{self.external_transaction_id}_debit" if self.external_transaction_id else None,
+                    hold_transaction_id=self._hold_transaction.id,
+                )
+                self._debited = True
+                return response
+        except Exception as e:
+            logger.error(f"Failed to debit: {e}")
+            raise
  
