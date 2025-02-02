@@ -36,7 +36,8 @@ class CredGemClient:
             headers={
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
-            }
+            },
+            follow_redirects=True
         )
         
         # Initialize API clients
@@ -79,7 +80,7 @@ class CredGemClient:
             A DrawCredits context manager
         """
         return DrawCredits(
-            client=self.transactions,
+            client=self,
             wallet_id=wallet_id,
             credit_type_id=credit_type_id,
             amount=amount,
