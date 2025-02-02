@@ -2,6 +2,8 @@ import pytest
 from decimal import Decimal
 from datetime import datetime
 
+from httpx import HTTPStatusError
+
 from credgem import CredGemClient
 from credgem.exceptions import InsufficientCreditsError
 
@@ -144,20 +146,20 @@ async def test_exception_auto_release(client, funded_wallet, credit_type):
     assert balance.available == 1000
 
 
-# @pytest.mark.asyncio
-# async def test_insufficient_credits(client, wallet, credit_type):
-#     """Test handling of insufficient credits."""
-#     # Try to hold more than available
-#     with pytest.raises(InsufficientCreditsError):
-#         async with client.draw_credits(
-#             wallet_id=wallet.id,
-#             credit_type_id=credit_type.id,
-#             amount=Decimal("100000.00"),  # No funds in wallet
-#             description="Test insufficient",
-#             issuer="test_system"
-#         ):
-#             pass  # Should raise before reaching here
-
+@pytest.mark.asyncio
+async def test_insufficient_credits(client, funded_wallet, credit_type):
+    """Test handling of insufficient credits."""
+    # Try to hold more than available
+    with pytest.raises(HTTPStatusError) as exc_info:
+        async with client.draw_credits(
+            wallet_id=funded_wallet.id,
+            credit_type_id=credit_type.id,
+            amount=1000000,  # No funds in wallet
+            description="Test insufficient",
+            issuer="test_system"
+        ):
+            pass  # Should raise before reaching here
+    assert exc_info.value.response.status_code ==402
 
 # @pytest.mark.asyncio
 # async def test_idempotency(client, funded_wallet, credit_type):
