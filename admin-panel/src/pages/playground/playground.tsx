@@ -10,6 +10,7 @@ import { DepositCredits } from "@/components/playground/deposit-credits";
 import { DebitCredits } from "@/components/playground/debit-credits";
 import { CheckWalletBalance } from "@/components/playground/check-wallet-balance";
 import { Progress } from "@/components/ui/progress";
+import confetti from "canvas-confetti";
 
 
 const steps = [
@@ -17,25 +18,28 @@ const steps = [
     title: "Create a Credit Type",
     description:
       "Create a credit type to define the type of credit you want to create.",
-    
+    status: "active"
   },
   {
     title: "Create a Wallet",
     description: "Create a wallet to hold the credit.",
+    status: "inactive"
   },
   {
     title: "Deposit Funds",
     description:
       "Deposit funds into the wallet.",
+    status: "inactive"
   },
   {
     title: "Debit Funds",
     description: "Debit funds from the wallet.",
-
+    status: "inactive"
   },
   {
     title: "Check Wallet Balance",
     description: "Check the balance of the wallet.",
+    status: "inactive"
   },
 ];
 
@@ -90,12 +94,26 @@ export default function Playground() {
   const [creditTypeId, setCreditTypeId] = React.useState<string>("");
   const [walletId, setWalletId] = React.useState<string>("");
   const onSuccess = () => {
+    steps[currentStep].status = "complete";
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }else{
         setDone(true);
     }
   }
+
+  useEffect(() => {
+    steps[currentStep].status = "active";
+  }, [currentStep]);
+
+  useEffect(() => {
+    if (done) {
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+        confetti({
+          ...defaults,
+        });
+    }
+  }, [done]);
 
   return (
     <div className="flex gap-8 p-20">
