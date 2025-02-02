@@ -245,4 +245,53 @@ async def test_model_extra_fields(client, credit_type):
     balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
     assert balance.available == 100.0
     assert balance.held == 0.0
-    assert balance.spent == 0.0 
+    assert balance.spent == 0.0
+
+
+@pytest.mark.asyncio
+async def test_reuse_existing_hold(client, funded_wallet, credit_type):
+    """Test reusing an existing hold with the same external transaction ID."""
+    initial_balance = 1000
+    hold_amount = 10
+    external_transaction_id = f"test_tx_{datetime.now().timestamp()}"
+
+    # First attempt - create hold without debit
+    async with client.draw_credits(
+        wallet_id=funded_wallet.id,
+        credit_type_id=credit_type.id,
+        amount=hold_amount,
+        description="Test hold reuse",
+        issuer="test_system",
+        external_transaction_id=external_transaction_id,
+    ) as draw:
+        # Verify funds are held
+        wallet_info = await client.wallets.get(funded_wallet.id)
+        balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
+        assert balance.held == hold_amount
+        assert balance.available == initial_balance - hold_amount
+        # Exit without debiting
+
+    # Second attempt - should reuse existing hold and complete debit
+    async with client.draw_credits(
+        wallet_id=funded_wallet.id,
+        credit_type_id=credit_type.id,
+        amount=hold_amount,
+        description="Test hold reuse",
+        issuer="test_system",
+        external_transaction_id=external_transaction_id
+    ) as draw:
+        # Verify the hold is still active
+        wallet_info = await client.wallets.get(funded_wallet.id)
+        balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
+        assert balance.held == hold_amount
+        assert balance.available == initial_balance - hold_amount
+
+        # Now complete the debit
+        await draw.debit()
+
+        # Verify funds were debited
+        wallet_info = await client.wallets.get(funded_wallet.id)
+        balance = next(b for b in wallet_info.balances if b.credit_type_id == credit_type.id)
+        assert balance.held == 0
+        assert balance.available == initial_balance - hold_amount
+        assert balance.spent == hold_amount 

@@ -36,7 +36,8 @@ class CredGemClient:
             headers={
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
-            }
+            },
+            follow_redirects=True
         )
         
         # Initialize API clients

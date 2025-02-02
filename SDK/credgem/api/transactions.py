@@ -261,12 +261,15 @@ class TransactionsAPI(BaseAPI):
     async def list(
         self,
         wallet_id: Optional[str] = None,
+        external_transaction_id: Optional[str] = None,
         page: int = 1,
         page_size: int = 50,
     ) -> List[TransactionResponse]:
-        """List transactions"""
+        """List transactions with optional filtering."""
         params = {"page": page, "page_size": page_size}
         if wallet_id:
             params["wallet_id"] = wallet_id
+        if external_transaction_id:
+            params["external_transaction_id"] = external_transaction_id
         response = await self._get("/transactions", params=params)
         return [TransactionResponse.from_dict(item) for item in response.get("data", [])] 
