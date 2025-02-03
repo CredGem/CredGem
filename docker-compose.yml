@@ -3,11 +3,11 @@ services:
     container_name: "postgres-container-credgem"
     image: "postgres:16"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=credgem # Added to create a default database
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-credgem}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - "postgresdata:/var/lib/postgresql/data"
     networks:
@@ -16,7 +16,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
-      timeout: 5s
+      timeout: 10s
       retries: 5
 
 
@@ -24,7 +24,7 @@ services:
     container_name: "redis-container-credgem"
     image: "redis:7.2"
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - "redisdata:/data"
     command: redis-server --appendonly yes
@@ -43,22 +43,22 @@ services:
       dockerfile: Dockerfile
     container_name: "server-container-credgem"
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:${SERVER_PORT:-8000}:8000"
     depends_on:
       - postgres
       - redis
     environment:
       - POSTGRES_HOST=postgres-container-credgem
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - DB_NAME=credgem
-      - REDIS_URL=redis://redis-container-credgem:6379
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_NAME=${POSTGRES_DB:-credgem}
+      - REDIS_URL=redis://redis-container-credgem:${REDIS_PORT:-6379}
     networks:
       - "mynetwork"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8009/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -69,12 +69,12 @@ services:
       context: ./admin-panel
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://0.0.0.0:8000/api/v1
+        - VITE_API_URL=http://0.0.0.0:${SERVER_PORT:-8000}/api/v1
     environment:
-      - VITE_API_URL=http://0.0.0.0:8000/api/v1
+      - VITE_API_URL=http://0.0.0.0:${SERVER_PORT:-8000}/api/v1
     container_name: "admin-panel-container-credgem"
     ports:
-      - "127.0.0.1:3001:3000"
+      - "127.0.0.1:${ADMIN_PANEL_PORT:-3000}:3000"
     depends_on:
       - server
     networks:
