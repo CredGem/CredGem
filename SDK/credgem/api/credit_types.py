@@ -1,62 +1,48 @@
-from typing import Dict, List, Optional
-from datetime import datetime
-from pydantic import BaseModel
+from typing import Dict, Any, Optional, List
 
-from credgem.api.base import BaseAPI
-
-
-class CreditTypeBase(BaseModel):
-    name: str
-    description: str
-
-
-class CreateCreditTypeRequest(CreditTypeBase):
-    pass
-
-
-class CreditTypeResponse(CreditTypeBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
-
-
-class UpdateCreditTypeRequest(CreditTypeBase):
-    pass
-
-
-class PaginatedCreditTypeResponse(BaseModel):
-    page: int
-    page_size: int
-    total_count: int
-    data: List[CreditTypeResponse]
+from .base import BaseAPI
+from ..models import CreditTypeResponse
 
 
 class CreditTypesAPI(BaseAPI):
     async def create(
-        self, name: str, description: str
+        self,
+        name: str,
+        description: Optional[str] = None,
     ) -> CreditTypeResponse:
-        """Create a new credit type"""
-        data = CreateCreditTypeRequest(name=name, description=description).model_dump()
-        return await self._post("/credit-types", json=data, response_model=CreditTypeResponse)
+        payload = {"name": name}
+        if description is not None:
+            payload["description"] = description
+
+        response = await self._post("/credit-types", json=payload, response_model=None)
+        return CreditTypeResponse.from_dict(response)
 
     async def get(self, credit_type_id: str) -> CreditTypeResponse:
-        """Get a credit type by ID"""
-        return await self._get(
-            f"/credit-types/{credit_type_id}", response_model=CreditTypeResponse
+        response = await self._get(
+            f"/credit-types/{credit_type_id}", response_model=None
         )
+        return CreditTypeResponse.from_dict(response)
+
+    async def list(self) -> List[CreditTypeResponse]:
+        response = await self._get("/credit-types", response_model=None)
+        return [CreditTypeResponse.from_dict(credit_type) for credit_type in response]
 
     async def update(
-        self, credit_type_id: str, name: str, description: str
+        self,
+        credit_type_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> CreditTypeResponse:
-        """Update a credit type"""
-        data = UpdateCreditTypeRequest(name=name, description=description).model_dump()
-        return await self._put(
-            f"/credit-types/{credit_type_id}", json=data, response_model=CreditTypeResponse
-        )
+        payload = {}
+        if name is not None:
+            payload["name"] = name
+        if description is not None:
+            payload["description"] = description
 
-    async def list(
-        self, page: int = 1, page_size: int = 50
-    ) -> PaginatedCreditTypeResponse:
-        """List all credit types"""
-        params = {"page": page, "page_size": page_size}
-        return await self._get("/credit-types", params=params, response_model=PaginatedCreditTypeResponse) 
+        response = await self._put(
+            f"/credit-types/{credit_type_id}", json=payload, response_model=None
+        )
+        return CreditTypeResponse.from_dict(response)
+
+    async def delete(self, credit_type_id: str) -> None:
+        await self._delete(f"/credit-types/{credit_type_id}", response_model=None)

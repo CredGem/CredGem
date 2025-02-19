@@ -1,8 +1,7 @@
 from typing import Dict, List, Optional
 from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel
-
+from dataclasses import dataclass
 from credgem.api.base import BaseAPI
 
 
@@ -12,7 +11,8 @@ class TimeGranularity(str, Enum):
     MONTH = "month"
 
 
-class WalletActivityPoint(BaseModel):
+@dataclass
+class WalletActivityPoint:
     timestamp: datetime
     wallet_id: str
     wallet_name: str
@@ -24,14 +24,16 @@ class WalletActivityPoint(BaseModel):
     total_adjustments: float = 0
 
 
-class WalletActivityResponse(BaseModel):
+@dataclass
+class WalletActivityResponse:
     start_date: datetime
     end_date: datetime
     granularity: TimeGranularity
     points: List[WalletActivityPoint]
 
 
-class CreditUsagePoint(BaseModel):
+@dataclass
+class CreditUsagePoint:
     timestamp: datetime
     wallet_id: str
     wallet_name: str
@@ -41,21 +43,24 @@ class CreditUsagePoint(BaseModel):
     total_adjustments: float = 0
 
 
-class CreditTypesUsage(BaseModel):
+@dataclass
+class CreditTypesUsage:
     credit_type_id: str
     credit_type_name: str
     debit_count: int = 0
     total_amount: float = 0
 
 
-class CreditUsageResponse(BaseModel):
+@dataclass
+class CreditUsageResponse:
     credit_type_id: str
     credit_type_name: str
     transaction_count: int
     debits_amount: float = 0
 
 
-class CreditUsageTimeSeriesPoint(BaseModel):
+@dataclass
+class CreditUsageTimeSeriesPoint:
     timestamp: datetime
     credit_type_id: str
     credit_type_name: str
@@ -63,7 +68,8 @@ class CreditUsageTimeSeriesPoint(BaseModel):
     debits_amount: float = 0
 
 
-class CreditUsageTimeSeriesResponse(BaseModel):
+@dataclass
+class CreditUsageTimeSeriesResponse:
     start_date: datetime
     end_date: datetime
     granularity: TimeGranularity
@@ -125,4 +131,4 @@ class InsightsAPI(BaseAPI):
             "/insights/system/credit-usage",
             params=params,
             response_model=CreditUsageTimeSeriesResponse,
-        ) 
+        )
