@@ -43,21 +43,16 @@ class WalletsAPI(BaseAPI):
         response = await self._get(f"/wallets/{wallet_id}", response_model=None)
         return WalletResponse.from_dict(response)
 
-    async def list(
-        self,
-        page: int = 1,
-        page_size: int = 50
-    ) -> PaginatedResponse:
-        params = {
-            "page": page,
-            "page_size": page_size
-        }
+    async def list(self, page: int = 1, page_size: int = 50) -> PaginatedResponse:
+        params = {"page": page, "page_size": page_size}
         response = await self._get("/wallets", params=params, response_model=None)
         return PaginatedResponse(
-            data=[WalletResponse.from_dict(wallet) for wallet in response.get("data", [])],
+            data=[
+                WalletResponse.from_dict(wallet) for wallet in response.get("data", [])
+            ],
             page=response.get("page", page),
             page_size=response.get("page_size", page_size),
-            total_count=response.get("total_count", 0)
+            total_count=response.get("total_count", 0),
         )
 
     async def update(
@@ -75,8 +70,10 @@ class WalletsAPI(BaseAPI):
         if context is not None:
             payload["context"] = context
 
-        response = await self._put(f"/wallets/{wallet_id}", json=payload, response_model=None)
+        response = await self._put(
+            f"/wallets/{wallet_id}", json=payload, response_model=None
+        )
         return WalletResponse.from_dict(response)
 
     async def delete(self, wallet_id: str) -> None:
-        await self._delete(f"/wallets/{wallet_id}", response_model=None) 
+        await self._delete(f"/wallets/{wallet_id}", response_model=None)

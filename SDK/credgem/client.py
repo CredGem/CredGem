@@ -49,7 +49,7 @@ class CredGemClient:
         skip_hold: bool = False,
     ) -> AsyncGenerator[None, None]:
         """Context manager for drawing credits from a wallet.
-        
+
         If skip_hold is True, skips the hold step and directly debits the credits.
         Otherwise, places a hold on the credits when entering the context and either
         debits or releases them when exiting.
@@ -97,4 +97,4 @@ class CredGemClient:
             if hold_transaction and not skip_hold:
                 # Release hold on any error
                 await self.transactions.release(hold_transaction.id)
-            raise e 
+            raise e

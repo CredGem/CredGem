@@ -18,7 +18,9 @@ class CreditTypesAPI(BaseAPI):
         return CreditTypeResponse.from_dict(response)
 
     async def get(self, credit_type_id: str) -> CreditTypeResponse:
-        response = await self._get(f"/credit-types/{credit_type_id}", response_model=None)
+        response = await self._get(
+            f"/credit-types/{credit_type_id}", response_model=None
+        )
         return CreditTypeResponse.from_dict(response)
 
     async def list(self) -> List[CreditTypeResponse]:
@@ -37,8 +39,10 @@ class CreditTypesAPI(BaseAPI):
         if description is not None:
             payload["description"] = description
 
-        response = await self._put(f"/credit-types/{credit_type_id}", json=payload, response_model=None)
+        response = await self._put(
+            f"/credit-types/{credit_type_id}", json=payload, response_model=None
+        )
         return CreditTypeResponse.from_dict(response)
 
     async def delete(self, credit_type_id: str) -> None:
-        await self._delete(f"/credit-types/{credit_type_id}", response_model=None) 
+        await self._delete(f"/credit-types/{credit_type_id}", response_model=None)
