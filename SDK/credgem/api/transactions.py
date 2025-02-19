@@ -1,8 +1,6 @@
-from typing import Dict, List, Optional, Any, Union, Literal
-from datetime import datetime
+from typing import Dict, List, Optional, Any, Literal
 from enum import Enum
-from pydantic import BaseModel, Field
-
+from dataclasses import dataclass, field
 from credgem.api.base import BaseAPI
 
 
@@ -27,69 +25,72 @@ class TransactionStatus(str, Enum):
     FAILED = "failed"
 
 
-class BalanceSnapshot(BaseModel):
+@dataclass
+class BalanceSnapshot:
     available: float
     held: float
     spent: float
     overall_spent: float
 
 
-class TransactionBase(BaseModel):
+@dataclass
+class TransactionBase:
     wallet_id: str
     credit_type_id: str
     description: str
-    idempotency_key: Optional[str] = Field(default=None, description="Idempotency key")
     issuer: str
-    context: Optional[Dict[str, Any]] = Field(
-        default_factory=dict, description="Context for the transaction"
-    )
+    idempotency_key: Optional[str] = None
+    context: Optional[Dict[str, Any]] = None
 
 
 class DepositRequest(TransactionBase):
-    type: Literal[TransactionType.DEPOSIT] = Field(default=TransactionType.DEPOSIT)
-    amount: float = Field(gt=0, description="Amount to deposit")
+    type: Literal[TransactionType.DEPOSIT] = TransactionType.DEPOSIT
+    amount: float
 
 
 class DebitRequest(TransactionBase):
-    type: Literal[TransactionType.DEBIT] = Field(default=TransactionType.DEBIT)
-    amount: float = Field(gt=0, description="Amount to debit")
-    hold_external_transaction_id: Optional[str] = Field(
-        default=None, description="Id of the hold transaction to debit"
-    )
+    type: Literal[TransactionType.DEBIT] = TransactionType.DEBIT
+    amount: float
+    hold_external_transaction_id: Optional[str] = None
 
 
 class HoldRequest(TransactionBase):
-    type: Literal[TransactionType.HOLD] = Field(default=TransactionType.HOLD)
-    amount: float = Field(gt=0, description="Amount to hold")
+    type: Literal[TransactionType.HOLD] = TransactionType.HOLD
+    amount: float
 
 
 class ReleaseRequest(TransactionBase):
-    type: Literal[TransactionType.RELEASE] = Field(default=TransactionType.RELEASE)
-    hold_external_transaction_id: str = Field(description="Id of the hold transaction to release")
+    type: Literal[TransactionType.RELEASE] = TransactionType.RELEASE
+    hold_external_transaction_id: str
 
 
 class AdjustRequest(TransactionBase):
-    type: Literal[TransactionType.ADJUST] = Field(default=TransactionType.ADJUST)
-    amount: float = Field(description="Amount to adjust")
-    reset_spent: bool = False
+    type: Literal[TransactionType.ADJUST] = TransactionType.ADJUST
+    amount: float
+    reset_spent: bool
 
 
-class TransactionResponse(BaseModel):
+@dataclass
+class TransactionResponse:
     id: str
-    wallet_id: Optional[str] = None
+    type: TransactionType
     credit_type_id: str
+    subscription_id: Optional[str] = None
+    wallet_id: Optional[str] = None
     description: Optional[str] = None
     issuer: Optional[str] = None
-    context: Dict = {}
+    external_transaction_id: Optional[str] = None
     status: Optional[str] = None
     hold_status: Optional[str] = None
+    context: dict = field(default_factory=dict)
     payload: Optional[Dict[str, Any]] = None
     balance_snapshot: Optional[Dict[str, float]] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
 
-class PaginatedTransactionResponse(BaseModel):
+@dataclass
+class PaginatedTransactionResponse:
     page: int
     page_size: int
     total_count: int
@@ -98,7 +99,7 @@ class PaginatedTransactionResponse(BaseModel):
 
 class TransactionsAPI(BaseAPI):
     """API client for transaction operations."""
-    
+
     async def hold(
         self,
         wallet_id: str,
@@ -108,28 +109,27 @@ class TransactionsAPI(BaseAPI):
         issuer: str | None = None,
         context: Optional[Dict] = None,
         external_transaction_id: str | None = None,
-
     ) -> TransactionResponse:
         """Create a hold on credits in a wallet."""
         payload = {
-            "payload":{"type":"hold","amount": str(amount)},
+            "payload": {"type": "hold", "amount": str(amount)},
             "credit_type_id": credit_type_id,
             "description": description,
             "issuer": issuer,
-            "context": context
+            "context": context,
         }
         if external_transaction_id:
             payload["external_transaction_id"] = external_transaction_id
-        
+
         # Remove None values
         payload = {k: v for k, v in payload.items() if v is not None}
-        
+
         return await self._post(
             f"/wallets/{wallet_id}/hold",
             payload,
             TransactionResponse,
         )
-    
+
     async def debit(
         self,
         wallet_id: str,
@@ -139,7 +139,7 @@ class TransactionsAPI(BaseAPI):
         issuer: str | None = None,
         external_transaction_id: str | None = None,
         hold_transaction_id: str | None = None,
-            context: Optional[Dict] = None,
+        context: Optional[Dict] = None,
     ) -> TransactionResponse:
         """Debit credits from a wallet."""
         payload = {
@@ -147,23 +147,23 @@ class TransactionsAPI(BaseAPI):
             "description": description,
             "issuer": issuer,
             "context": context,
-            "payload":{
-                "amount":amount,
+            "payload": {
+                "amount": amount,
             },
             "external_transaction_id": external_transaction_id,
         }
         if hold_transaction_id:
             payload["payload"]["hold_transaction_id"] = hold_transaction_id
-        
+
         # Remove None values
         payload = {k: v for k, v in payload.items() if v is not None}
-        
+
         return await self._post(
             f"/wallets/{wallet_id}/debit",
             payload,
             TransactionResponse,
         )
-    
+
     async def release(
         self,
         wallet_id: str,
@@ -173,7 +173,7 @@ class TransactionsAPI(BaseAPI):
         issuer: str,
         external_transaction_id: Optional[str] = None,
         idempotency_key: Optional[str] = None,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
     ) -> TransactionResponse:
         """Release a hold on credits."""
         data = {
@@ -181,22 +181,19 @@ class TransactionsAPI(BaseAPI):
             "credit_type_id": credit_type_id,
             "description": description,
             "issuer": issuer,
-            "external_transaction_id":external_transaction_id,
-            "payload": {
-                "type": "release",
-                "hold_transaction_id": hold_transaction_id
-            },
-            "context": context or {}
+            "external_transaction_id": external_transaction_id,
+            "payload": {"type": "release", "hold_transaction_id": hold_transaction_id},
+            "context": context or {},
         }
         if idempotency_key:
             data["idempotency_key"] = idempotency_key
-        
+
         return await self._post(
             f"/wallets/{wallet_id}/release",
             json=data,
-            response_model=TransactionResponse
+            response_model=TransactionResponse,
         )
-    
+
     async def deposit(
         self,
         wallet_id: str,
@@ -206,7 +203,7 @@ class TransactionsAPI(BaseAPI):
         issuer: str,
         external_transaction_id: Optional[str] = None,
         idempotency_key: Optional[str] = None,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
     ) -> TransactionResponse:
         """Deposit credits into a wallet."""
         data = {
@@ -214,25 +211,25 @@ class TransactionsAPI(BaseAPI):
             "credit_type_id": credit_type_id,
             "description": description,
             "issuer": issuer,
-            "payload": {
-                "type": "deposit",
-                "amount": float(amount)
-            },
-            "context": context or {}
+            "payload": {"type": "deposit", "amount": float(amount)},
+            "context": context or {},
         }
         if idempotency_key:
             data["idempotency_key"] = idempotency_key
-        
+
         return await self._post(
             f"/wallets/{wallet_id}/deposit",
             json=data,
-            response_model=TransactionResponse
+            response_model=TransactionResponse,
         )
-    
+
     async def get(self, external_transaction_id: str) -> TransactionResponse:
         """Get a transaction by ID"""
-        return await self._get(f"/transactions/{external_transaction_id}", response_model=TransactionResponse)
-    
+        return await self._get(
+            f"/transactions/{external_transaction_id}",
+            response_model=TransactionResponse,
+        )
+
     async def list(
         self,
         wallet_id: Optional[str] = None,
@@ -240,7 +237,11 @@ class TransactionsAPI(BaseAPI):
         page_size: int = 50,
     ) -> TransactionResponse:
         """List transactions"""
-        params = {"page": page, "page_size": page_size}
-        if wallet_id:
-            params["wallet_id"] = wallet_id
-        return await self._get("/transactions", params=params, response_model=TransactionResponse) 
+        params = {
+            "page": page,
+            "page_size": page_size,
+            **({"wallet_id": wallet_id} if wallet_id else {}),
+        }
+        return await self._get(
+            "/transactions", params=params, response_model=TransactionResponse
+        )

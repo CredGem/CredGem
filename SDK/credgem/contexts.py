@@ -1,10 +1,9 @@
 import uuid
 import logging
-from typing import Optional, Dict, Any, Tuple, Awaitable
+from typing import Optional, Dict, Tuple, Awaitable
 
-from httpx import HTTPStatusError, HTTPError
+from httpx import HTTPError
 
-from credgem.api.base import BaseAPI
 from credgem.api.transactions import TransactionResponse
 from credgem.exceptions import InsufficientCreditsError
 
@@ -13,14 +12,14 @@ logger = logging.getLogger(__name__)
 
 class DrawCredits:
     """Context manager for drawing credits from a wallet.
-    
+
     This context manager handles the lifecycle of a credit transaction, including:
     - Creating a hold on credits (optional)
     - Debiting credits
     - Releasing held credits if not debited
     - Handling errors and cleanup
     """
-    
+
     def __init__(
         self,
         client,
@@ -31,10 +30,10 @@ class DrawCredits:
         issuer: str = "",
         external_transaction_id: Optional[str] = None,
         context: Optional[Dict] = None,
-        skip_hold: bool = False
+        skip_hold: bool = False,
     ):
         """Initialize the DrawCredits context.
-        
+
         Args:
             client: The CredGemClient instance
             wallet_id: The ID of the wallet to draw credits from
@@ -55,11 +54,13 @@ class DrawCredits:
         self.external_transaction_id = external_transaction_id
         self.context = context or {}
         self.skip_hold = skip_hold
-        
+
         self.hold_id = None
         self.debit_amount = None
-    
-    async def _handle_api_call(self, coro: Awaitable[TransactionResponse]) -> Tuple[bool, Optional[TransactionResponse]]:
+
+    async def _handle_api_call(
+        self, coro: Awaitable[TransactionResponse]
+    ) -> Tuple[bool, Optional[TransactionResponse]]:
         """Handle API call with proper error handling."""
         try:
             response = await coro
@@ -76,18 +77,18 @@ class DrawCredits:
                 raise InsufficientCreditsError("Insufficient credits available")
             else:
                 raise
-    
+
     async def hold(self):
         """Create a hold on the credits."""
         if self.skip_hold:
             return
-        
+
         if self.hold_id:
             return
-        
+
         if not self.amount:
             raise ValueError("Amount is required for hold operation")
-        
+
         logger.info(
             f"Creating hold for {self.amount} credits for wallet {self.wallet_id}"
         )
@@ -100,28 +101,28 @@ class DrawCredits:
                 issuer=self.issuer,
                 external_transaction_id=f"hold_{self.external_transaction_id}",
                 # idempotency_key=f"hold_{self.transaction_id}",
-                context=self.context
+                context=self.context,
             )
         )
         if success and response:
             self.hold_id = response.id
-    
-    async def debit(self, amount: Optional[float] = None, context: Optional[Dict] = None):
+
+    async def debit(
+        self, amount: Optional[float] = None, context: Optional[Dict] = None
+    ):
         """Debit credits from the wallet.
-        
+
         Args:
             amount: Optional amount to debit. If not provided, uses the hold amount.
             context: Optional context to override the initial context.
         """
         if not self.skip_hold and not amount and not self.amount:
             raise ValueError("Amount is required for debit operation")
-        
+
         debit_amount = amount or self.amount
         debit_context = {**self.context, **(context or {})}
-        
-        logger.info(
-            f"Debiting {debit_amount} credits from wallet {self.wallet_id}"
-        )
+
+        logger.info(f"Debiting {debit_amount} credits from wallet {self.wallet_id}")
         success, response = await self._handle_api_call(
             self.client.debit(
                 wallet_id=self.wallet_id,
@@ -131,26 +132,24 @@ class DrawCredits:
                 issuer=self.issuer,
                 hold_transaction_id=self.hold_id,
                 external_transaction_id=f"debit_{self.external_transaction_id}",
-                context=debit_context
+                context=debit_context,
             )
         )
         if success:
             self.debit_amount = debit_amount
-    
+
     async def release(self, context: Optional[Dict] = None):
         """Release held credits.
-        
+
         Args:
             context: Optional context to override the initial context.
         """
         if not self.hold_id:
             return
-        
+
         release_context = {**self.context, **(context or {})}
-        
-        logger.info(
-            f"Releasing hold {self.hold_id} for wallet {self.wallet_id}"
-        )
+
+        logger.info(f"Releasing hold {self.hold_id} for wallet {self.wallet_id}")
         success, _ = await self._handle_api_call(
             self.client.release(
                 wallet_id=self.wallet_id,
@@ -159,22 +158,21 @@ class DrawCredits:
                 description=self.description,
                 issuer=self.issuer,
                 external_transaction_id=f"release_{self.external_transaction_id}",
-                context=release_context
+                context=release_context,
             )
         )
         if success:
             self.hold_id = None
-    
+
     async def __aenter__(self):
         """Enter the context and create a hold if needed."""
         await self.hold()
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Exit the context and handle cleanup.
-        
+
         If an exception occurred or debit wasn't called, release the hold.
         """
         if self.hold_id and not self.debit_amount:
             await self.release()
- 

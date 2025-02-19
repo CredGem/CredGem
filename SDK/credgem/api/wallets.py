@@ -1,8 +1,7 @@
-from typing import Dict, List, Optional
+from typing import List, Optional
 from datetime import datetime
 from enum import Enum
-
-from pydantic import BaseModel
+from dataclasses import dataclass, asdict
 
 from credgem.api.base import BaseAPI
 
@@ -12,7 +11,8 @@ class WalletStatus(str, Enum):
     INACTIVE = "inactive"
 
 
-class BalanceResponse(BaseModel):
+@dataclass
+class BalanceResponse:
     id: str
     created_at: datetime
     updated_at: datetime
@@ -24,15 +24,18 @@ class BalanceResponse(BaseModel):
     overall_spent: float
 
 
-class WalletBase(BaseModel):
+@dataclass
+class WalletBase:
     name: str
-    context: dict = {}
+    context: dict
 
 
+@dataclass
 class CreateWalletRequest(WalletBase):
     pass
 
 
+@dataclass
 class WalletResponse(WalletBase):
     id: str
     balances: List[BalanceResponse]
@@ -40,13 +43,18 @@ class WalletResponse(WalletBase):
     created_at: datetime
     updated_at: datetime
 
+    def __post_init__(self):
+        self.balances = [BalanceResponse(**balance) for balance in self.balances]
 
-class UpdateWalletRequest(BaseModel):
+
+@dataclass
+class UpdateWalletRequest:
     name: Optional[str] = None
     context: Optional[dict] = None
 
 
-class PaginatedWalletResponse(BaseModel):
+@dataclass
+class PaginatedWalletResponse:
     page: int
     page_size: int
     total_count: int
@@ -56,7 +64,7 @@ class PaginatedWalletResponse(BaseModel):
 class WalletsAPI(BaseAPI):
     async def create(self, name: str, context: dict = {}) -> WalletResponse:
         """Create a new wallet"""
-        data = CreateWalletRequest(name=name, context=context).model_dump()
+        data = asdict(CreateWalletRequest(name=name, context=context))
         return await self._post("/wallets", json=data, response_model=WalletResponse)
 
     async def get(self, wallet_id: str) -> WalletResponse:
@@ -72,11 +80,13 @@ class WalletsAPI(BaseAPI):
             data["name"] = name
         if context is not None:
             data["context"] = context
-        return await self._put(f"/wallets/{wallet_id}", json=data, response_model=WalletResponse)
+        return await self._put(
+            f"/wallets/{wallet_id}", json=data, response_model=WalletResponse
+        )
 
-    async def list(
-        self, page: int = 1, page_size: int = 50
-    ) -> PaginatedWalletResponse:
+    async def list(self, page: int = 1, page_size: int = 50) -> PaginatedWalletResponse:
         """List all wallets"""
         params = {"page": page, "page_size": page_size}
-        return await self._get("/wallets", params=params, response_model=PaginatedWalletResponse) 
+        return await self._get(
+            "/wallets", params=params, response_model=PaginatedWalletResponse
+        )
