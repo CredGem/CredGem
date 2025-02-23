@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 
 from credgem.models.wallets import PaginatedWalletResponse, WalletResponse
-from credgem.utils import get_context_filter
+from ..utils import get_context_filter
 
 from .base import BaseAPI
 
