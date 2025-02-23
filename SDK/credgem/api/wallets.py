@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional
 
 from credgem.models.wallets import PaginatedWalletResponse, WalletResponse
+from credgem.utils import get_context_filter
 
 from .base import BaseAPI
 
@@ -30,8 +31,15 @@ class WalletsAPI(BaseAPI):
         response = await self._get(f"/wallets/{wallet_id}", response_model=None)
         return WalletResponse.from_dict(response)
 
-    async def list(self, page: int = 1, page_size: int = 50) -> PaginatedWalletResponse:
-        params = {"page": page, "page_size": page_size}
+    async def list(
+        self,
+        page: int = 1,
+        page_size: int = 50,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> PaginatedWalletResponse:
+        params: Dict[str, Any] = {"page": page, "page_size": page_size}
+        if context is not None:
+            params["context"] = get_context_filter(context)
         response = await self._get("/wallets", params=params, response_model=None)
         return PaginatedWalletResponse(
             data=[

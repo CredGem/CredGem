@@ -123,6 +123,23 @@ async def test_list_wallets(client):
 
 
 @pytest.mark.asyncio
+async def test_list_wallets_with_context(client):
+    """Test listing wallets filtered by context."""
+    # Create wallets with different contexts
+    context1 = {"ts": f"{datetime.now().timestamp()}"}
+    context2 = {"ts": f"{datetime.now().timestamp()}"}
+
+    await client.wallets.create(name=f"test wallet", context=context1)
+    await client.wallets.create(name=f"test wallet", context=context2)
+
+    # List wallets filtered by context
+    response = await client.wallets.list(context=context1)
+
+    assert len(response.data) == 1
+    assert response.data[0].context.get("ts") == context1.get("ts")
+
+
+@pytest.mark.asyncio
 async def test_wallet_with_balance(client, credit_type):
     """Test wallet creation and balance management."""
     # Create a wallet
