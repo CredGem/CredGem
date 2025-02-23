@@ -1,5 +1,5 @@
-from typing import Any, Dict, Optional, Type, TypeVar, Protocol
-from dataclasses import is_dataclass
+from typing import Any, Dict, Optional, Protocol, Type, TypeVar
+
 from httpx import AsyncClient
 
 

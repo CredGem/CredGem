@@ -1,7 +1,7 @@
-from typing import Dict, Any, Optional, List
+from typing import List, Optional
 
+from ..models.credit_types import CreditTypeResponse
 from .base import BaseAPI
-from ..models import CreditTypeResponse
 
 
 class CreditTypesAPI(BaseAPI):

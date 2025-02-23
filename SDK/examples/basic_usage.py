@@ -1,6 +1,7 @@
 import asyncio
-from decimal import Decimal
 from datetime import datetime, timedelta
+from decimal import Decimal
+
 from credgem import CredGemClient
 
 

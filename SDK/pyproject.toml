@@ -25,12 +25,14 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 httpx = "^0.25.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
 pytest-asyncio = "^0.23.5"
+ipykernel = "^6.29.5"
+isort = "^6.0.0"
 
 [build-system]
 requires = ["poetry-core"]

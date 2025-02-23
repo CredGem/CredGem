@@ -1,5 +1,6 @@
 import asyncio
 from decimal import Decimal
+
 from credgem import CredGemClient
 from credgem.exceptions import InsufficientCreditsError
 
