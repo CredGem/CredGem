@@ -3,6 +3,9 @@ from datetime import datetime
 import pytest
 
 from credgem import CredGemClient
+from credgem.models.credit_types import CreditTypeRequest
+from credgem.models.transactions import DepositRequest
+from credgem.models.wallets import WalletRequest, WalletUpdateRequest
 
 
 @pytest.fixture
@@ -18,7 +21,10 @@ async def client():
 async def credit_type(client):
     """Create a test credit type."""
     credit_type = await client.credit_types.create(
-        name=f"TEST_POINTS_{datetime.now().timestamp()}", description="Test credit type"
+        CreditTypeRequest(
+            name=f"TEST_POINTS_{datetime.now().timestamp()}",
+            description="Test credit type",
+        )
     )
     return credit_type
 
@@ -29,7 +35,12 @@ async def test_create_wallet(client):
     name = f"Test Wallet {datetime.now().timestamp()}"
     context = {"test": True}
 
-    wallet = await client.wallets.create(name=name, context=context)
+    wallet = await client.wallets.create(
+        WalletRequest(
+            name=name,
+            context=context,
+        )
+    )
 
     assert wallet.id is not None
     assert wallet.name == name
@@ -42,7 +53,11 @@ async def test_create_wallet_minimal(client):
     """Test wallet creation with minimal properties."""
     name = f"Test Wallet {datetime.now().timestamp()}"
 
-    wallet = await client.wallets.create(name=name)
+    wallet = await client.wallets.create(
+        WalletRequest(
+            name=name,
+        )
+    )
 
     assert wallet.id is not None
     assert wallet.name == name
@@ -55,7 +70,11 @@ async def test_get_wallet(client):
     """Test retrieving a wallet by ID."""
     # Create a wallet first
     name = f"Test Wallet {datetime.now().timestamp()}"
-    created_wallet = await client.wallets.create(name=name)
+    created_wallet = await client.wallets.create(
+        WalletRequest(
+            name=name,
+        )
+    )
 
     # Retrieve the wallet
     wallet = await client.wallets.get(created_wallet.id)
@@ -70,14 +89,22 @@ async def test_update_wallet(client):
     """Test updating wallet properties."""
     # Create a wallet first
     original_name = f"Test Wallet {datetime.now().timestamp()}"
-    wallet = await client.wallets.create(name=original_name)
+    wallet = await client.wallets.create(
+        WalletRequest(
+            name=original_name,
+        )
+    )
 
     # Update the wallet
     new_name = f"Updated Wallet {datetime.now().timestamp()}"
     new_context = {"updated": True}
 
     updated_wallet = await client.wallets.update(
-        wallet_id=wallet.id, name=new_name, context=new_context
+        wallet_id=wallet.id,
+        request=WalletUpdateRequest(
+            name=new_name,
+            context=new_context,
+        ),
     )
 
     assert updated_wallet.id == wallet.id
@@ -92,11 +119,21 @@ async def test_partial_update_wallet(client):
     original_name = f"Test Wallet {datetime.now().timestamp()}"
     original_context = {"original": True}
 
-    wallet = await client.wallets.create(name=original_name, context=original_context)
+    wallet = await client.wallets.create(
+        WalletRequest(
+            name=original_name,
+            context=original_context,
+        )
+    )
 
     # Update only the name
     new_name = f"Updated Wallet {datetime.now().timestamp()}"
-    updated_wallet = await client.wallets.update(wallet_id=wallet.id, name=new_name)
+    updated_wallet = await client.wallets.update(
+        wallet_id=wallet.id,
+        request=WalletUpdateRequest(
+            name=new_name,
+        ),
+    )
 
     assert updated_wallet.id == wallet.id
     assert updated_wallet.name == new_name
@@ -110,7 +147,11 @@ async def test_list_wallets(client):
     wallet_names = []
     for i in range(3):
         name = f"Test Wallet {i} {datetime.now().timestamp()}"
-        await client.wallets.create(name=name)
+        await client.wallets.create(
+            WalletRequest(
+                name=name,
+            )
+        )
         wallet_names.append(name)
 
     # List wallets with pagination
@@ -129,8 +170,18 @@ async def test_list_wallets_with_context(client):
     context1 = {"ts": f"{datetime.now().timestamp()}"}
     context2 = {"ts": f"{datetime.now().timestamp()}"}
 
-    await client.wallets.create(name=f"test wallet", context=context1)
-    await client.wallets.create(name=f"test wallet", context=context2)
+    await client.wallets.create(
+        WalletRequest(
+            name=f"test wallet",
+            context=context1,
+        )
+    )
+    await client.wallets.create(
+        WalletRequest(
+            name=f"test wallet",
+            context=context2,
+        )
+    )
 
     # List wallets filtered by context
     response = await client.wallets.list(context=context1)
@@ -144,17 +195,19 @@ async def test_wallet_with_balance(client, credit_type):
     """Test wallet creation and balance management."""
     # Create a wallet
     wallet = await client.wallets.create(
-        name=f"Test Wallet {datetime.now().timestamp()}"
+        WalletRequest(name=f"Test Wallet {datetime.now().timestamp()}")
     )
 
     # Deposit credits
     deposit_amount = 100
     await client.transactions.deposit(
-        wallet_id=wallet.id,
-        amount=deposit_amount,
-        credit_type_id=credit_type.id,
-        description="Test deposit",
-        issuer="test_system",
+        DepositRequest(
+            wallet_id=wallet.id,
+            amount=deposit_amount,
+            credit_type_id=credit_type.id,
+            description="Test deposit",
+            issuer="test_system",
+        )
     )
 
     # Get updated wallet info
@@ -173,34 +226,42 @@ async def test_wallet_with_multiple_credit_types(client):
     """Test wallet with multiple credit types."""
     # Create two credit types
     credit_type1 = await client.credit_types.create(
-        name=f"TEST_POINTS_1_{datetime.now().timestamp()}",
-        description="Test credit type 1",
+        CreditTypeRequest(
+            name=f"TEST_POINTS_1_{datetime.now().timestamp()}",
+            description="Test credit type 1",
+        )
     )
     credit_type2 = await client.credit_types.create(
-        name=f"TEST_POINTS_2_{datetime.now().timestamp()}",
-        description="Test credit type 2",
+        CreditTypeRequest(
+            name=f"TEST_POINTS_2_{datetime.now().timestamp()}",
+            description="Test credit type 2",
+        )
     )
 
     # Create a wallet
     wallet = await client.wallets.create(
-        name=f"Test Wallet {datetime.now().timestamp()}"
+        WalletRequest(name=f"Test Wallet {datetime.now().timestamp()}")
     )
 
     # Deposit different credit types
     await client.transactions.deposit(
-        wallet_id=wallet.id,
-        amount=100,
-        credit_type_id=credit_type1.id,
-        description="Test deposit 1",
-        issuer="test_system",
+        DepositRequest(
+            wallet_id=wallet.id,
+            amount=100,
+            credit_type_id=credit_type1.id,
+            description="Test deposit 1",
+            issuer="test_system",
+        )
     )
 
     await client.transactions.deposit(
-        wallet_id=wallet.id,
-        amount=200,
-        credit_type_id=credit_type2.id,
-        description="Test deposit 2",
-        issuer="test_system",
+        DepositRequest(
+            wallet_id=wallet.id,
+            amount=200,
+            credit_type_id=credit_type2.id,
+            description="Test deposit 2",
+            issuer="test_system",
+        )
     )
 
     # Get updated wallet info

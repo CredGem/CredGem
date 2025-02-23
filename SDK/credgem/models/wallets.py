@@ -10,6 +10,20 @@ class WalletStatus(str, Enum):
     INACTIVE = "inactive"
 
 
+@dataclass(kw_only=True)
+class WalletRequest:
+    name: str
+    description: Optional[str] = None
+    context: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(kw_only=True)
+class WalletUpdateRequest:
+    name: Optional[str] = None
+    description: Optional[str] = None
+    context: Optional[Dict[str, Any]] = None
+
+
 @dataclass(frozen=True)
 class Balance:
     credit_type_id: str

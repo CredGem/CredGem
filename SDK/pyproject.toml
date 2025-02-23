@@ -33,6 +33,7 @@ pytest = "^8.3.4"
 pytest-asyncio = "^0.23.5"
 ipykernel = "^6.29.5"
 isort = "^6.0.0"
+pytest-only = "^2.1.2"
 
 [build-system]
 requires = ["poetry-core"]

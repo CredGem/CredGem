@@ -24,48 +24,45 @@ class TransactionStatus(str, Enum):
     FAILED = "failed"
 
 
-@dataclass
-class BalanceSnapshot:
-    available: float
-    held: float
-    spent: float
-    overall_spent: float
-
-
-@dataclass
+@dataclass(kw_only=True)
 class TransactionBase:
     wallet_id: str
     credit_type_id: str
     description: str
     issuer: str
-    idempotency_key: Optional[str] = None
+    external_transaction_id: Optional[str] = field(default=None)
     context: Optional[Dict[str, Any]] = field(default_factory=dict)
 
 
+@dataclass(kw_only=True)
 class DepositRequest(TransactionBase):
     amount: float
-    type: Literal[TransactionType.DEPOSIT] = TransactionType.DEPOSIT
+    type: Literal[TransactionType.DEPOSIT] = field(default=TransactionType.DEPOSIT)
 
 
+@dataclass(kw_only=True)
 class DebitRequest(TransactionBase):
     amount: float
-    type: Literal[TransactionType.DEBIT] = TransactionType.DEBIT
-    hold_external_transaction_id: Optional[str] = None
+    type: Literal[TransactionType.DEBIT] = field(default=TransactionType.DEBIT)
+    hold_transaction_id: Optional[str] = field(default=None)
 
 
+@dataclass(kw_only=True)
 class HoldRequest(TransactionBase):
-    type: Literal[TransactionType.HOLD] = TransactionType.HOLD
-    amount: float
+    amount: float = field(default=0.0)
+    type: Literal[TransactionType.HOLD] = field(default=TransactionType.HOLD)
 
 
+@dataclass(kw_only=True)
 class ReleaseRequest(TransactionBase):
-    type: Literal[TransactionType.RELEASE] = TransactionType.RELEASE
-    hold_external_transaction_id: str
+    hold_transaction_id: str
+    type: Literal[TransactionType.RELEASE] = field(default=TransactionType.RELEASE)
 
 
+@dataclass(kw_only=True)
 class AdjustRequest(TransactionBase):
-    type: Literal[TransactionType.ADJUST] = TransactionType.ADJUST
     amount: float
+    type: Literal[TransactionType.ADJUST] = field(default=TransactionType.ADJUST)
     reset_spent: bool = False
 
 

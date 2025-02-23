@@ -1,11 +1,12 @@
 from datetime import datetime
-from decimal import Decimal
 
 import pytest
 from httpx import HTTPStatusError
 
 from credgem import CredGemClient
-from credgem.exceptions import InsufficientCreditsError
+from credgem.models.credit_types import CreditTypeRequest
+from credgem.models.transactions import DepositRequest
+from credgem.models.wallets import WalletRequest
 
 
 @pytest.fixture
@@ -21,7 +22,10 @@ async def client():
 async def credit_type(client):
     """Create a test credit type."""
     credit_type = await client.credit_types.create(
-        name=f"TEST_POINTS_{datetime.now().timestamp()}", description="Test credit type"
+        CreditTypeRequest(
+            name=f"TEST_POINTS_{datetime.now().timestamp()}",
+            description="Test credit type",
+        )
     )
     return credit_type
 
@@ -30,7 +34,9 @@ async def credit_type(client):
 async def wallet(client):
     """Create a test wallet."""
     wallet = await client.wallets.create(
-        name=f"Test Wallet {datetime.now().timestamp()}", context={"test": True}
+        WalletRequest(
+            name=f"Test Wallet {datetime.now().timestamp()}", context={"test": True}
+        )
     )
     return wallet
 
@@ -40,11 +46,13 @@ async def funded_wallet(client, wallet, credit_type):
     """Create a wallet with initial funds."""
     # Add initial funds
     await client.transactions.deposit(
-        wallet_id=wallet.id,
-        amount=Decimal("1000.00"),
-        credit_type_id=credit_type.id,
-        description="Initial test deposit",
-        issuer="test_system",
+        DepositRequest(
+            wallet_id=wallet.id,
+            amount=float("1000.00"),
+            credit_type_id=credit_type.id,
+            description="Initial test deposit",
+            issuer="test_system",
+        )
     )
     return wallet
 
@@ -171,47 +179,12 @@ async def test_insufficient_credits(client, funded_wallet, credit_type):
     assert exc_info.value.response.status_code == 402
 
 
-# @pytest.mark.asyncio
-# async def test_idempotency(client, funded_wallet, credit_type):
-#     """Test idempotency with same transaction ID."""
-#     amount = Decimal("10.00")
-#     transaction_id = "test_tx_123"
-
-#     # First attempt
-#     async with client.draw_credits(
-#         wallet_id=funded_wallet.id,
-#         credit_type_id=credit_type.id,
-#         amount=amount,
-#         description="Test idempotency",
-#         issuer="test_system",
-#         transaction_id=transaction_id
-#     ) as draw:
-#         await draw.debit()
-
-#     initial_balance = await client.wallets.get(funded_wallet.id)
-
-#     # Second attempt with same transaction ID
-#     async with client.draw_credits(
-#         wallet_id=funded_wallet.id,
-#         credit_type_id=credit_type.id,
-#         amount=amount,
-#         description="Test idempotency",
-#         issuer="test_system",
-#         transaction_id=transaction_id
-#     ) as draw:
-#         await draw.debit()
-
-#     # Verify balance hasn't changed after second attempt
-#     final_balance = await client.wallets.get(funded_wallet.id)
-#     assert initial_balance == final_balance
-
-
 @pytest.mark.asyncio
 async def test_model_optional_fields(client, credit_type):
     """Test that models handle optional fields correctly."""
     # Test wallet creation with minimal fields
     wallet = await client.wallets.create(
-        name=f"Test Wallet {datetime.now().timestamp()}"
+        WalletRequest(name=f"Test Wallet {datetime.now().timestamp()}")
     )
     assert wallet.context == {}  # Should use default empty dict
     assert wallet.description is None  # Optional field should be None
@@ -220,9 +193,11 @@ async def test_model_optional_fields(client, credit_type):
 
     # Test wallet with all fields
     wallet_with_context = await client.wallets.create(
-        name=f"Test Wallet {datetime.now().timestamp()}",
-        description="Test description",
-        context={"test": True},
+        WalletRequest(
+            name=f"Test Wallet {datetime.now().timestamp()}",
+            description="Test description",
+            context={"test": True},
+        )
     )
     assert wallet_with_context.description == "Test description"
     assert wallet_with_context.context == {"test": True}
@@ -232,7 +207,7 @@ async def test_model_optional_fields(client, credit_type):
 async def test_model_extra_fields(client, credit_type):
     """Test that models handle extra fields from server gracefully."""
     wallet = await client.wallets.create(
-        name=f"Test Wallet {datetime.now().timestamp()}"
+        WalletRequest(name=f"Test Wallet {datetime.now().timestamp()}")
     )
 
     # Verify the model works even with standard fields
@@ -243,11 +218,13 @@ async def test_model_extra_fields(client, credit_type):
 
     # Add funds to test Balance model
     await client.transactions.deposit(
-        wallet_id=wallet.id,
-        amount=Decimal("100.00"),
-        credit_type_id=credit_type.id,
-        description="Test deposit",
-        issuer="test_system",
+        DepositRequest(
+            wallet_id=wallet.id,
+            amount=float("100.00"),
+            credit_type_id=credit_type.id,
+            description="Test deposit",
+            issuer="test_system",
+        )
     )
 
     # Get wallet info and verify Balance objects work

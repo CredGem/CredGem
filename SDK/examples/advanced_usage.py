@@ -1,11 +1,20 @@
 import asyncio
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Dict, List
+from typing import Dict
 
 from httpx import HTTPStatusError
 
 from credgem import CredGemClient
+from credgem.models.credit_types import CreditTypeRequest
+from credgem.models.insights import TimeGranularity
+from credgem.models.transactions import (
+    DebitRequest,
+    DepositRequest,
+    HoldRequest,
+    ReleaseRequest,
+)
+from credgem.models.wallets import WalletRequest
 
 
 async def setup_credit_types(client: CredGemClient) -> Dict[str, str]:
@@ -20,7 +29,7 @@ async def setup_credit_types(client: CredGemClient) -> Dict[str, str]:
     for name, description in types_to_create:
         try:
             credit_type = await client.credit_types.create(
-                name=name, description=description
+                CreditTypeRequest(name=name, description=description)
             )
             credit_types[name] = credit_type.id
             print(f"Created credit type {name}: {credit_type.id}")
@@ -37,9 +46,15 @@ async def create_customer_wallet(
     try:
         # Create wallet
         wallet = await client.wallets.create(
-            name=f"Customer {customer_id} Wallet",
-            description="Multi-currency customer wallet",
-            context={"customer_id": customer_id, "type": "customer", "tier": "gold"},
+            WalletRequest(
+                name=f"Customer {customer_id} Wallet",
+                description="Multi-currency customer wallet",
+                context={
+                    "customer_id": customer_id,
+                    "type": "customer",
+                    "tier": "gold",
+                },
+            )
         )
 
         # Initial deposits for each credit type
@@ -51,13 +66,15 @@ async def create_customer_wallet(
 
         for credit_type, amount, description in deposits:
             await client.transactions.deposit(
-                wallet_id=wallet.id,
-                amount=Decimal(amount),
-                credit_type_id=credit_types[credit_type],
-                description=description,
-                issuer="onboarding_system",
-                idempotency_key=f"welcome_{customer_id}_{credit_type}",
-                context={"event": "customer_onboarding"},
+                DepositRequest(
+                    wallet_id=wallet.id,
+                    amount=float(amount),
+                    credit_type_id=credit_types[credit_type],
+                    description=description,
+                    issuer="onboarding_system",
+                    external_transaction_id=f"welcome_{customer_id}_{credit_type}",
+                    context={"event": "customer_onboarding"},
+                )
             )
 
         return wallet.id
@@ -77,13 +94,15 @@ async def process_purchase(
     try:
         # Create hold
         hold = await client.transactions.hold(
-            wallet_id=wallet_id,
-            amount=amount,
-            credit_type_id=credit_type_id,
-            description=f"Hold for order {order_id}",
-            issuer="purchase_system",
-            idempotency_key=f"hold_{order_id}",
-            context={"order_id": order_id, "type": "purchase"},
+            HoldRequest(
+                wallet_id=wallet_id,
+                amount=float(amount),
+                credit_type_id=credit_type_id,
+                description=f"Hold for order {order_id}",
+                issuer="purchase_system",
+                external_transaction_id=f"hold_{order_id}",
+                context={"order_id": order_id, "type": "purchase"},
+            )
         )
 
         # Simulate some processing time
@@ -91,14 +110,16 @@ async def process_purchase(
 
         # Complete the purchase with debit
         await client.transactions.debit(
-            wallet_id=wallet_id,
-            amount=amount,
-            credit_type_id=credit_type_id,
-            description=f"Purchase for order {order_id}",
-            issuer="purchase_system",
-            hold_transaction_id=hold.id,
-            idempotency_key=f"debit_{order_id}",
-            context={"order_id": order_id, "type": "purchase"},
+            DebitRequest(
+                wallet_id=wallet_id,
+                amount=float(amount),
+                credit_type_id=credit_type_id,
+                description=f"Purchase for order {order_id}",
+                issuer="purchase_system",
+                hold_transaction_id=hold.id,
+                external_transaction_id=f"debit_{order_id}",
+                context={"order_id": order_id, "type": "purchase"},
+            )
         )
 
         return True
@@ -108,13 +129,15 @@ async def process_purchase(
         if "hold" in locals():
             try:
                 await client.transactions.release(
-                    wallet_id=wallet_id,
-                    hold_transaction_id=hold.id,
-                    credit_type_id=credit_type_id,
-                    description=f"Release failed purchase hold for order {order_id}",
-                    issuer="purchase_system",
-                    idempotency_key=f"release_{order_id}",
-                    context={"order_id": order_id, "type": "purchase_failed"},
+                    ReleaseRequest(
+                        wallet_id=wallet_id,
+                        hold_transaction_id=hold.id,
+                        credit_type_id=credit_type_id,
+                        description=f"Release failed purchase hold for order {order_id}",
+                        issuer="purchase_system",
+                        external_transaction_id=f"release_{order_id}",
+                        context={"order_id": order_id, "type": "purchase_failed"},
+                    )
                 )
             except HTTPStatusError as release_error:
                 print(f"Failed to release hold: {release_error}")
@@ -135,14 +158,14 @@ async def get_wallet_statistics(client: CredGemClient, wallet_id: str) -> Dict:
             wallet_id=wallet_id,
             start_date=start_date,
             end_date=end_date,
-            granularity="day",
+            granularity=TimeGranularity.DAY,
         )
 
         credit_usage = await client.insights.get_credit_usage(
             wallet_id=wallet_id,
             start_date=start_date,
             end_date=end_date,
-            granularity="day",
+            granularity=TimeGranularity.DAY,
         )
 
         return {

@@ -1,18 +1,21 @@
 from typing import List, Optional
 
-from ..models.credit_types import CreditTypeResponse
+from ..models.credit_types import (
+    CreditTypeRequest,
+    CreditTypeResponse,
+    CreditTypeUpdateRequest,
+)
 from .base import BaseAPI
 
 
 class CreditTypesAPI(BaseAPI):
     async def create(
         self,
-        name: str,
-        description: Optional[str] = None,
+        request: CreditTypeRequest,
     ) -> CreditTypeResponse:
-        payload = {"name": name}
-        if description is not None:
-            payload["description"] = description
+        payload = {"name": request.name}
+        if request.description is not None:
+            payload["description"] = request.description
 
         response = await self._post("/credit-types", json=payload, response_model=None)
         return CreditTypeResponse.from_dict(response)
@@ -30,14 +33,13 @@ class CreditTypesAPI(BaseAPI):
     async def update(
         self,
         credit_type_id: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
+        request: CreditTypeUpdateRequest,
     ) -> CreditTypeResponse:
         payload = {}
-        if name is not None:
-            payload["name"] = name
-        if description is not None:
-            payload["description"] = description
+        if request.name is not None:
+            payload["name"] = request.name
+        if request.description is not None:
+            payload["description"] = request.description
 
         response = await self._put(
             f"/credit-types/{credit_type_id}", json=payload, response_model=None

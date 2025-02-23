@@ -3,6 +3,18 @@ from typing import Any, Dict, Optional
 
 
 @dataclass(kw_only=True)
+class CreditTypeRequest:
+    name: str
+    description: Optional[str] = field(default=None)
+
+
+@dataclass(kw_only=True)
+class CreditTypeUpdateRequest:
+    name: Optional[str] = field(default=None)
+    description: Optional[str] = field(default=None)
+
+
+@dataclass(kw_only=True)
 class CreditTypeResponse:
     id: str
     name: str

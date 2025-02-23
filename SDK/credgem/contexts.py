@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 from httpx import HTTPStatusError
 
 from credgem.api.transactions import TransactionResponse
+from credgem.models.transactions import DebitRequest, HoldRequest, ReleaseRequest
 
 if TYPE_CHECKING:
     from credgem import CredGemClient
@@ -76,15 +77,17 @@ class DrawCredits:
         if not self.skip_hold:
             try:
                 self._hold_transaction = await self.client.transactions.hold(
-                    wallet_id=self.wallet_id,
-                    amount=self.amount,
-                    credit_type_id=self.credit_type_id,
-                    description=self.description,
-                    issuer=self.issuer,
-                    context=self.context,
-                    external_transaction_id=f"{self.external_transaction_id}_hold"
-                    if self.external_transaction_id
-                    else None,
+                    HoldRequest(
+                        wallet_id=self.wallet_id,
+                        amount=self.amount,
+                        credit_type_id=self.credit_type_id,
+                        description=self.description,
+                        issuer=self.issuer,
+                        context=self.context,
+                        external_transaction_id=f"{self.external_transaction_id}_hold"
+                        if self.external_transaction_id
+                        else None,
+                    )
                 )
             except HTTPStatusError as e:
                 if e.response.status_code == 409:
@@ -113,15 +116,17 @@ class DrawCredits:
         if exc_val is not None and self._hold_transaction:
             try:
                 await self.client.transactions.release(
-                    wallet_id=self.wallet_id,
-                    hold_transaction_id=self._hold_transaction.id,
-                    credit_type_id=self.credit_type_id,
-                    description=f"Auto-release of {self.description}",
-                    issuer=self.issuer,
-                    context=self.context,
-                    external_transaction_id=f"{self.external_transaction_id}_release"
-                    if self.external_transaction_id
-                    else None,
+                    ReleaseRequest(
+                        wallet_id=self.wallet_id,
+                        hold_transaction_id=self._hold_transaction.id,
+                        credit_type_id=self.credit_type_id,
+                        description=f"Auto-release of {self.description}",
+                        issuer=self.issuer,
+                        context=self.context,
+                        external_transaction_id=f"{self.external_transaction_id}_release"
+                        if self.external_transaction_id
+                        else None,
+                    )
                 )
             except HTTPStatusError as e:
                 if e.response.status_code == 409:
@@ -145,22 +150,7 @@ class DrawCredits:
         try:
             if self.skip_hold:
                 return await self.client.transactions.debit(
-                    wallet_id=self.wallet_id,
-                    amount=self.amount,
-                    credit_type_id=self.credit_type_id,
-                    description=self.description,
-                    issuer=self.issuer,
-                    context=self.context,
-                    external_transaction_id=f"{self.external_transaction_id}_debit"
-                    if self.external_transaction_id
-                    else None,
-                )
-            else:
-                if not self._hold_transaction:
-                    raise ValueError("No active hold to debit")
-
-                try:
-                    response = await self.client.transactions.debit(
+                    DebitRequest(
                         wallet_id=self.wallet_id,
                         amount=self.amount,
                         credit_type_id=self.credit_type_id,
@@ -170,7 +160,26 @@ class DrawCredits:
                         external_transaction_id=f"{self.external_transaction_id}_debit"
                         if self.external_transaction_id
                         else None,
-                        hold_transaction_id=self._hold_transaction.id,
+                    )
+                )
+            else:
+                if not self._hold_transaction:
+                    raise ValueError("No active hold to debit")
+
+                try:
+                    response = await self.client.transactions.debit(
+                        DebitRequest(
+                            wallet_id=self.wallet_id,
+                            amount=self.amount,
+                            credit_type_id=self.credit_type_id,
+                            description=self.description,
+                            issuer=self.issuer,
+                            context=self.context,
+                            external_transaction_id=f"{self.external_transaction_id}_debit"
+                            if self.external_transaction_id
+                            else None,
+                            hold_transaction_id=self._hold_transaction.id,
+                        )
                     )
                     self._debited = True
                     return response

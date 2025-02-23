@@ -35,7 +35,7 @@ async def main():
             credit_type_id=credit_type.id,
             description="Welcome bonus",
             issuer="system",
-            idempotency_key="welcome_bonus_cust_123",
+            external_transaction_id="welcome_bonus_cust_123",
             context={"source": "welcome_bonus"},
         )
         print(f"Deposited credits: {deposit.id}")
@@ -47,7 +47,7 @@ async def main():
             credit_type_id=credit_type.id,
             description="Hold for pending purchase",
             issuer="store_app",
-            idempotency_key="purchase_hold_123",
+            external_transaction_id="purchase_hold_123",
             context={"order_id": "order_123"},
         )
         print(f"Created hold: {hold.id}")
@@ -60,7 +60,7 @@ async def main():
             description="Purchase completion",
             issuer="store_app",
             hold_transaction_id=hold.id,
-            idempotency_key="purchase_debit_123",
+            external_transaction_id="purchase_debit_123",
             context={"order_id": "order_123"},
         )
         print(f"Debited credits: {debit.id}")
