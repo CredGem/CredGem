@@ -1,6 +1,7 @@
-import pytest
 from datetime import datetime
+
 import httpx
+import pytest
 
 from credgem import CredGemClient
 from credgem.exceptions import InsufficientCreditsError

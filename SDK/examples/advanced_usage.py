@@ -1,7 +1,8 @@
 import asyncio
-from decimal import Decimal
 from datetime import datetime, timedelta
-from typing import List, Dict
+from decimal import Decimal
+from typing import Dict, List
+
 from httpx import HTTPStatusError
 
 from credgem import CredGemClient

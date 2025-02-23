@@ -2,10 +2,10 @@ from typing import Dict, Optional
 
 import httpx
 
-from .api.wallets import WalletsAPI
-from .api.transactions import TransactionsAPI
 from .api.credit_types import CreditTypesAPI
 from .api.insights import InsightsAPI
+from .api.transactions import TransactionsAPI
+from .api.wallets import WalletsAPI
 from .contexts import DrawCredits
 
 
@@ -22,12 +22,6 @@ class CredGemClient:
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.http_client = None
-
-        # Initialize API clients
-        self.wallets = None
-        self.transactions = None
-        self.credit_types = None
-        self.insights = None
 
     async def __aenter__(self):
         """Set up the HTTP client and API clients."""

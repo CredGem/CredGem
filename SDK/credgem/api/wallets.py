@@ -1,21 +1,8 @@
-from typing import Dict, Any, Optional, List, NamedTuple
-from datetime import datetime
-from enum import Enum
+from typing import Any, Dict, Optional
+
+from credgem.models.wallets import PaginatedWalletResponse, WalletResponse
 
 from .base import BaseAPI
-from ..models import WalletResponse, Balance
-
-
-class PaginatedResponse(NamedTuple):
-    data: List[Any]
-    page: int
-    page_size: int
-    total_count: int
-
-
-class WalletStatus(str, Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
 
 
 class WalletsAPI(BaseAPI):
@@ -25,7 +12,7 @@ class WalletsAPI(BaseAPI):
         description: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
     ) -> WalletResponse:
-        payload = {
+        payload: Dict[str, Any] = {
             "name": name,
         }
         if description is not None:
@@ -43,10 +30,10 @@ class WalletsAPI(BaseAPI):
         response = await self._get(f"/wallets/{wallet_id}", response_model=None)
         return WalletResponse.from_dict(response)
 
-    async def list(self, page: int = 1, page_size: int = 50) -> PaginatedResponse:
+    async def list(self, page: int = 1, page_size: int = 50) -> PaginatedWalletResponse:
         params = {"page": page, "page_size": page_size}
         response = await self._get("/wallets", params=params, response_model=None)
-        return PaginatedResponse(
+        return PaginatedWalletResponse(
             data=[
                 WalletResponse.from_dict(wallet) for wallet in response.get("data", [])
             ],

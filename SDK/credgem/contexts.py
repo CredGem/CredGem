@@ -1,5 +1,6 @@
 import logging
-from typing import Dict, Optional, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
+
 from httpx import HTTPStatusError
 
 from credgem.api.transactions import TransactionResponse
@@ -106,38 +107,6 @@ class DrawCredits:
                 logger.error(f"Failed to create hold: {e}")
                 raise
         return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Release the hold if there was an exception and we have a hold transaction."""
-        if exc_type is not None and self._hold_transaction:
-            try:
-                await self.client.transactions.release(
-                    wallet_id=self.wallet_id,
-                    hold_transaction_id=self._hold_transaction.id,
-                    credit_type_id=self.credit_type_id,
-                    description=f"Auto-release of {self.description} due to error",
-                    issuer=self.issuer,
-                    context=self.context,
-                    external_transaction_id=f"{self.external_transaction_id}_release"
-                    if self.external_transaction_id
-                    else None,
-                )
-            except HTTPStatusError as e:
-                if e.response.status_code == 409:
-                    # Check if release already exists
-                    existing_release = await self._get_existing_transaction("release")
-                    if existing_release:
-                        logger.info(
-                            f"Release already processed for transaction {self.external_transaction_id}"
-                        )
-                    else:
-                        logger.error(
-                            f"409 Conflict but couldn't find existing release for {self.external_transaction_id}"
-                        )
-                else:
-                    logger.error(f"Failed to release hold: {e}")
-            except Exception as e:
-                logger.error(f"Failed to release hold: {e}")
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Release the hold if it wasn't debited and not skipping hold."""
