@@ -21,9 +21,6 @@ class CredGemClient:
         """
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
-        self.http_client = None
-
-    async def __aenter__(self):
         """Set up the HTTP client and API clients."""
         self.http_client = httpx.AsyncClient(
             base_url=self.base_url,
@@ -33,13 +30,13 @@ class CredGemClient:
             },
             follow_redirects=True,
         )
-
         # Initialize API clients
         self.wallets = WalletsAPI(self.http_client)
         self.transactions = TransactionsAPI(self.http_client)
         self.credit_types = CreditTypesAPI(self.http_client)
         self.insights = InsightsAPI(self.http_client)
 
+    async def __aenter__(self):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
