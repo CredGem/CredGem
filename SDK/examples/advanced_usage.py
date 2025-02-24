@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Dict
+import uuid
 
 from httpx import HTTPStatusError
 
@@ -89,6 +90,7 @@ async def process_purchase(
     credit_type_id: str,
     amount: Decimal,
     order_id: str,
+    _id: str,
 ) -> bool:
     """Process a purchase with hold and debit"""
     try:
@@ -100,7 +102,7 @@ async def process_purchase(
                 credit_type_id=credit_type_id,
                 description=f"Hold for order {order_id}",
                 issuer="purchase_system",
-                external_transaction_id=f"hold_{order_id}",
+                external_transaction_id=f"hold_{order_id}_{_id}",
                 context={"order_id": order_id, "type": "purchase"},
             )
         )
@@ -117,7 +119,7 @@ async def process_purchase(
                 description=f"Purchase for order {order_id}",
                 issuer="purchase_system",
                 hold_transaction_id=hold.id,
-                external_transaction_id=f"debit_{order_id}",
+                external_transaction_id=f"debit_{order_id}_{_id}",
                 context={"order_id": order_id, "type": "purchase"},
             )
         )
@@ -135,7 +137,7 @@ async def process_purchase(
                         credit_type_id=credit_type_id,
                         description=f"Release failed purchase hold for order {order_id}",
                         issuer="purchase_system",
-                        external_transaction_id=f"release_{order_id}",
+                        external_transaction_id=f"release_{order_id}_{_id}",
                         context={"order_id": order_id, "type": "purchase_failed"},
                     )
                 )
@@ -144,71 +146,17 @@ async def process_purchase(
         return False
 
 
-async def get_wallet_statistics(client: CredGemClient, wallet_id: str) -> Dict:
-    """Get comprehensive wallet statistics"""
-    try:
-        # Get current wallet state
-        wallet = await client.wallets.get(wallet_id)
-
-        # Get historical activity
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=30)
-
-        activity = await client.insights.get_wallet_activity(
-            wallet_id=wallet_id,
-            start_date=start_date,
-            end_date=end_date,
-            granularity=TimeGranularity.DAY,
-        )
-
-        credit_usage = await client.insights.get_credit_usage(
-            wallet_id=wallet_id,
-            start_date=start_date,
-            end_date=end_date,
-            granularity=TimeGranularity.DAY,
-        )
-
-        return {
-            "current_balances": {
-                balance.credit_type_id: {
-                    "available": balance.available,
-                    "held": balance.held,
-                    "spent": balance.spent,
-                }
-                for balance in wallet.balances
-            },
-            "activity_summary": {
-                "total_transactions": sum(
-                    point.total_transactions for point in activity.points
-                ),
-                "total_deposits": sum(
-                    point.total_deposits for point in activity.points
-                ),
-                "total_debits": sum(point.total_debits for point in activity.points),
-            },
-            "credit_usage": {
-                point.credit_type_id: {
-                    "transactions": point.transaction_count,
-                    "amount": point.debits_amount,
-                }
-                for point in credit_usage.points
-            },
-        }
-    except HTTPStatusError as e:
-        print(f"Failed to get wallet statistics: {e}")
-        return {}
-
-
 async def main():
     async with CredGemClient(
-        api_key="your-api-key", base_url="http://localhost:8000"
+        api_key="your-api-key", base_url="http://localhost:8000/api/v1"
     ) as client:
         # Set up credit types
+        _id = str(uuid.uuid4())
         credit_types = await setup_credit_types(client)
 
         # Create customer wallet
         wallet_id = await create_customer_wallet(
-            client, customer_id="CUST_123", credit_types=credit_types
+            client, customer_id=f"CUST_123_{_id}", credit_types=credit_types
         )
 
         # Process some purchases
@@ -225,15 +173,9 @@ async def main():
                 credit_type_id=credit_types[credit_type],
                 amount=Decimal(amount),
                 order_id=order_id,
+                _id=_id,
             )
             print(f"Purchase {order_id} {'succeeded' if success else 'failed'}")
-
-        # Get and print statistics
-        stats = await get_wallet_statistics(client, wallet_id)
-        print("\nWallet Statistics:")
-        print("Current Balances:", stats["current_balances"])
-        print("Activity Summary:", stats["activity_summary"])
-        print("Credit Usage:", stats["credit_usage"])
 
 
 if __name__ == "__main__":

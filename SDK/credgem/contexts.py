@@ -145,18 +145,28 @@ class DrawCredits:
             except Exception as e:
                 logger.error(f"Failed to release hold: {e}")
 
-    async def debit(self) -> TransactionResponse:
+    async def debit(
+        self,
+        amount: Optional[float] = None,
+        additional_context: Optional[Dict[str, Any]] = None,
+    ) -> TransactionResponse:
         """Debit the held credits or perform direct debit if skip_hold is True."""
         try:
+            amount = amount or self.amount
+            context = {
+                **(self.context or {}),
+                **(additional_context or {}),
+            }
             if self.skip_hold:
+
                 return await self.client.transactions.debit(
                     DebitRequest(
                         wallet_id=self.wallet_id,
-                        amount=self.amount,
+                        amount=amount,
                         credit_type_id=self.credit_type_id,
                         description=self.description,
                         issuer=self.issuer,
-                        context=self.context,
+                        context=context,
                         external_transaction_id=f"{self.external_transaction_id}_debit"
                         if self.external_transaction_id
                         else None,
@@ -170,11 +180,11 @@ class DrawCredits:
                     response = await self.client.transactions.debit(
                         DebitRequest(
                             wallet_id=self.wallet_id,
-                            amount=self.amount,
+                            amount=amount,
                             credit_type_id=self.credit_type_id,
                             description=self.description,
                             issuer=self.issuer,
-                            context=self.context,
+                            context=context,
                             external_transaction_id=f"{self.external_transaction_id}_debit"
                             if self.external_transaction_id
                             else None,
