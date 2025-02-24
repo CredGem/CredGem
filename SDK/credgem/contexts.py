@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 from httpx import HTTPStatusError
 
 from credgem.api.transactions import TransactionResponse
+from credgem.models.transactions import DebitRequest, HoldRequest, ReleaseRequest
 
 if TYPE_CHECKING:
     from credgem import CredGemClient
@@ -76,15 +77,17 @@ class DrawCredits:
         if not self.skip_hold:
             try:
                 self._hold_transaction = await self.client.transactions.hold(
-                    wallet_id=self.wallet_id,
-                    amount=self.amount,
-                    credit_type_id=self.credit_type_id,
-                    description=self.description,
-                    issuer=self.issuer,
-                    context=self.context,
-                    external_transaction_id=f"{self.external_transaction_id}_hold"
-                    if self.external_transaction_id
-                    else None,
+                    HoldRequest(
+                        wallet_id=self.wallet_id,
+                        amount=self.amount,
+                        credit_type_id=self.credit_type_id,
+                        description=self.description,
+                        issuer=self.issuer,
+                        context=self.context,
+                        external_transaction_id=f"{self.external_transaction_id}_hold"
+                        if self.external_transaction_id
+                        else None,
+                    )
                 )
             except HTTPStatusError as e:
                 if e.response.status_code == 409:
@@ -113,15 +116,17 @@ class DrawCredits:
         if exc_val is not None and self._hold_transaction:
             try:
                 await self.client.transactions.release(
-                    wallet_id=self.wallet_id,
-                    hold_transaction_id=self._hold_transaction.id,
-                    credit_type_id=self.credit_type_id,
-                    description=f"Auto-release of {self.description}",
-                    issuer=self.issuer,
-                    context=self.context,
-                    external_transaction_id=f"{self.external_transaction_id}_release"
-                    if self.external_transaction_id
-                    else None,
+                    ReleaseRequest(
+                        wallet_id=self.wallet_id,
+                        hold_transaction_id=self._hold_transaction.id,
+                        credit_type_id=self.credit_type_id,
+                        description=f"Auto-release of {self.description}",
+                        issuer=self.issuer,
+                        context=self.context,
+                        external_transaction_id=f"{self.external_transaction_id}_release"
+                        if self.external_transaction_id
+                        else None,
+                    )
                 )
             except HTTPStatusError as e:
                 if e.response.status_code == 409:
@@ -140,20 +145,32 @@ class DrawCredits:
             except Exception as e:
                 logger.error(f"Failed to release hold: {e}")
 
-    async def debit(self) -> TransactionResponse:
+    async def debit(
+        self,
+        amount: Optional[float] = None,
+        additional_context: Optional[Dict[str, Any]] = None,
+    ) -> TransactionResponse:
         """Debit the held credits or perform direct debit if skip_hold is True."""
         try:
+            amount = amount or self.amount
+            context = {
+                **(self.context or {}),
+                **(additional_context or {}),
+            }
             if self.skip_hold:
+
                 return await self.client.transactions.debit(
-                    wallet_id=self.wallet_id,
-                    amount=self.amount,
-                    credit_type_id=self.credit_type_id,
-                    description=self.description,
-                    issuer=self.issuer,
-                    context=self.context,
-                    external_transaction_id=f"{self.external_transaction_id}_debit"
-                    if self.external_transaction_id
-                    else None,
+                    DebitRequest(
+                        wallet_id=self.wallet_id,
+                        amount=amount,
+                        credit_type_id=self.credit_type_id,
+                        description=self.description,
+                        issuer=self.issuer,
+                        context=context,
+                        external_transaction_id=f"{self.external_transaction_id}_debit"
+                        if self.external_transaction_id
+                        else None,
+                    )
                 )
             else:
                 if not self._hold_transaction:
@@ -161,16 +178,18 @@ class DrawCredits:
 
                 try:
                     response = await self.client.transactions.debit(
-                        wallet_id=self.wallet_id,
-                        amount=self.amount,
-                        credit_type_id=self.credit_type_id,
-                        description=self.description,
-                        issuer=self.issuer,
-                        context=self.context,
-                        external_transaction_id=f"{self.external_transaction_id}_debit"
-                        if self.external_transaction_id
-                        else None,
-                        hold_transaction_id=self._hold_transaction.id,
+                        DebitRequest(
+                            wallet_id=self.wallet_id,
+                            amount=amount,
+                            credit_type_id=self.credit_type_id,
+                            description=self.description,
+                            issuer=self.issuer,
+                            context=context,
+                            external_transaction_id=f"{self.external_transaction_id}_debit"
+                            if self.external_transaction_id
+                            else None,
+                            hold_transaction_id=self._hold_transaction.id,
+                        )
                     )
                     self._debited = True
                     return response

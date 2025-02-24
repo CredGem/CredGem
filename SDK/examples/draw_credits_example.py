@@ -3,6 +3,9 @@ from decimal import Decimal
 
 from credgem import CredGemClient
 from credgem.exceptions import InsufficientCreditsError
+from credgem.models.credit_types import CreditTypeRequest
+from credgem.models.transactions import DepositRequest
+from credgem.models.wallets import WalletRequest
 
 
 async def process_order(
@@ -17,7 +20,7 @@ async def process_order(
         async with client.draw_credits(
             wallet_id=wallet_id,
             credit_type_id=credit_type_id,
-            amount=amount,
+            amount=float(amount),
             description=f"Processing order {order_id}",
             issuer="order_system",
             context={
@@ -35,8 +38,8 @@ async def process_order(
 
             # Explicitly debit with the final amount and additional context
             await draw.debit(
-                amount=final_amount,
-                context={
+                amount=float(final_amount),
+                additional_context={
                     "discount_applied": "5%",
                     "original_amount": str(amount),
                     "status": "completed",
@@ -54,68 +57,35 @@ async def process_order(
     return True
 
 
-async def process_order_with_manual_release(
-    client: CredGemClient,
-    wallet_id: str,
-    credit_type_id: str,
-    order_id: str,
-    amount: Decimal,
-):
-    try:
-        async with client.draw_credits(
-            wallet_id=wallet_id,
-            credit_type_id=credit_type_id,
-            amount=amount,
-            description=f"Processing order {order_id}",
-            issuer="order_system",
-            context={"order_id": order_id},
-        ) as draw:
-            # Simulate order processing that fails
-            await asyncio.sleep(1)
-            print(f"Processing order {order_id}...")
-
-            success = False  # Simulate failure
-
-            if success:
-                await draw.debit(context={"status": "completed"})
-            else:
-                # Explicitly release the hold with failure context
-                await draw.release(
-                    context={"status": "failed", "reason": "order_processing_failed"}
-                )
-                print(f"Order {order_id} failed, hold released")
-                return False
-
-    except Exception as e:
-        print(f"Error processing order {order_id}: {e}")
-        return False
-
-    return True
-
-
 async def main():
     async with CredGemClient(
         api_key="your-api-key", base_url="http://localhost:8000"
     ) as client:
         # Create a credit type
         credit_type = await client.credit_types.create(
-            name="STORE_CREDITS", description="Store purchase credits"
+            CreditTypeRequest(
+                name="STORE_CREDITS", description="Store purchase credits"
+            )
         )
 
         # Create a wallet with initial deposit
         wallet = await client.wallets.create(
-            name="Customer Wallet",
-            description="Store credits wallet",
-            context={"customer_id": "CUST_123"},
+            WalletRequest(
+                name="Customer Wallet",
+                description="Store credits wallet",
+                context={"customer_id": "CUST_123"},
+            )
         )
 
         # Add some credits
         await client.transactions.deposit(
-            wallet_id=wallet.id,
-            amount=Decimal("100.00"),
-            credit_type_id=credit_type.id,
-            description="Initial deposit",
-            issuer="system",
+            DepositRequest(
+                wallet_id=wallet.id,
+                amount=float("100.00"),
+                credit_type_id=credit_type.id,
+                description="Initial deposit",
+                issuer="system",
+            )
         )
 
         # Process orders with automatic discount
@@ -139,15 +109,6 @@ async def main():
             for balance in wallet_info.balances:
                 if balance.credit_type_id == credit_type.id:
                     print(f"Current balance: {balance.available}")
-
-        # Process an order that will fail and demonstrate manual release
-        await process_order_with_manual_release(
-            client,
-            wallet_id=wallet.id,
-            credit_type_id=credit_type.id,
-            order_id="ORDER_003",
-            amount=Decimal("20.00"),
-        )
 
 
 if __name__ == "__main__":

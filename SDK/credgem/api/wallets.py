@@ -1,30 +1,33 @@
 from typing import Any, Dict, Optional
 
-from credgem.models.wallets import PaginatedWalletResponse, WalletResponse
-from ..utils import get_context_filter
+from credgem.models.wallets import (
+    PaginatedWalletResponse,
+    WalletRequest,
+    WalletResponse,
+    WalletUpdateRequest,
+)
 
+from ..utils import get_context_filter
 from .base import BaseAPI
 
 
 class WalletsAPI(BaseAPI):
     async def create(
         self,
-        name: str,
-        description: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
+        request: WalletRequest,
     ) -> WalletResponse:
         payload: Dict[str, Any] = {
-            "name": name,
+            "name": request.name,
         }
-        if description is not None:
-            payload["description"] = description
-        if context is not None:
-            payload["context"] = context
+        if request.description is not None:
+            payload["description"] = request.description
+        if request.context:
+            payload["context"] = request.context
 
         response = await self._post("/wallets", json=payload, response_model=None)
         # Ensure description is properly set in the response
-        if description is not None and "description" not in response:
-            response["description"] = description
+        if request.description is not None and "description" not in response:
+            response["description"] = request.description
         return WalletResponse.from_dict(response)
 
     async def get(self, wallet_id: str) -> WalletResponse:
@@ -53,17 +56,15 @@ class WalletsAPI(BaseAPI):
     async def update(
         self,
         wallet_id: str,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
+        request: WalletUpdateRequest,
     ) -> WalletResponse:
         payload = {}
-        if name is not None:
-            payload["name"] = name
-        if description is not None:
-            payload["description"] = description
-        if context is not None:
-            payload["context"] = context
+        if request.name is not None:
+            payload["name"] = request.name
+        if request.description is not None:
+            payload["description"] = request.description
+        if request.context is not None:
+            payload["context"] = request.context
 
         response = await self._put(
             f"/wallets/{wallet_id}", json=payload, response_model=None

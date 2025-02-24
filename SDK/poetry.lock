@@ -739,6 +739,20 @@ docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1.0)"]
 testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)"]
 
 [[package]]
+name = "pytest-only"
+version = "2.1.2"
+description = "Use @pytest.mark.only to run a single test"
+optional = false
+python-versions = "<4.0,>=3.8"
+files = [
+    {file = "pytest_only-2.1.2-py3-none-any.whl", hash = "sha256:04dffe2aed64a741145ce5ad25b5df3ae4212e01ff885a8821fd2318eb509e91"},
+    {file = "pytest_only-2.1.2.tar.gz", hash = "sha256:e341acc083e3bb66debc660b7d5d71ae3b31da5edc2a737280d7304221ab0c29"},
+]
+
+[package.dependencies]
+pytest = ">=3.6.0,<9"
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
@@ -1061,4 +1075,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "ebe579893339877aed7964b236a71d0a06781f35680295ea519f1495c710c38f"
+content-hash = "c3f8e575b14f87e44e99ebcbaf9498eb522c307e9b1fb4b20fd2d980a47a4771"
