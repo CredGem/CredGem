@@ -13,6 +13,8 @@ from src.models.transactions import (
 from src.utils.constants import DUPLICATE_TRANSACTION_ERROR
 from src.utils.ctx_managers import DBSessionCtx, db_session
 
+PG_UNIQUE_VIOLATION_ERROR = "23505"
+
 
 async def run_managed_transaction(
     wallet_id: str,
@@ -45,11 +47,18 @@ async def run_managed_transaction(
             )
             session_ctx.add_to_refresh([transaction])
 
-    except IntegrityError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=DUPLICATE_TRANSACTION_ERROR,
-        )
+    except IntegrityError as e:
+        pgcode = getattr(e.orig, "pgcode", None)
+        if pgcode == PG_UNIQUE_VIOLATION_ERROR:
+            constraint_name = getattr(
+                getattr(e.orig, "__cause__", None), "constraint_name", None
+            )
+            if constraint_name == "ix_transactions_external_transaction_id":
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=DUPLICATE_TRANSACTION_ERROR,
+                )
+        raise
 
     try:
         redis_manager = RedisManager()
