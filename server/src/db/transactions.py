@@ -132,3 +132,15 @@ async def list_transactions(
         page_size=pagination.page_size,
         total_count=total or 0,
     )
+
+
+async def get_transaction_by_external_id(
+    session: AsyncSession,
+    external_transaction_id: str,
+) -> TransactionDBModel | None:
+    result = await session.execute(
+        select(TransactionDBModel).where(
+            TransactionDBModel.external_transaction_id == external_transaction_id
+        )
+    )
+    return result.scalar_one_or_none()

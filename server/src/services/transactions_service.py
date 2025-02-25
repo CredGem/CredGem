@@ -20,6 +20,17 @@ async def get_transaction(transaction_id: str) -> TransactionResponse:
     return transaction.to_response()
 
 
+async def get_transaction_by_external_id(
+    external_transaction_id: str,
+) -> TransactionResponse | None:
+    async with db_session() as session_ctx:
+        session = session_ctx.session
+        transaction = await transactions_db.get_transaction_by_external_id(
+            session=session, external_transaction_id=external_transaction_id
+        )
+    return transaction.to_response() if transaction else None
+
+
 async def list_transactions(
     wallet_id: Optional[str],
     credit_type_id: Optional[str],
