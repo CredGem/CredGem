@@ -50,7 +50,11 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
+        sa.Column("external_transaction_id", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
+        sa.Index(
+            "ix_wallets_external_transaction_id", "external_transaction_id", unique=True
+        ),
     )
 
     # Create credit_types table

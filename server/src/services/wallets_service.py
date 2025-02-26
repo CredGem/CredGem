@@ -3,6 +3,7 @@ from logging import getLogger
 from typing import List, Optional
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import balances as balances_db
@@ -46,10 +47,12 @@ from src.models.wallets import (
 )
 from src.utils.constants import (
     BALANCE_NOT_FOUND_ERROR,
+    DUPLICATE_TRANSACTION_ERROR,
     HOLD_AMOUNT_EXCEEDS_ERROR,
     HOLD_TRANSACTION_NOT_FOUND_ERROR,
     HOLD_TRANSACTION_NOT_HELD_ERROR,
     INSUFFICIENT_BALANCE_ERROR,
+    PG_UNIQUE_VIOLATION_ERROR,
     WALLET_NOT_FOUND_ERROR,
 )
 from src.utils.ctx_managers import DBSessionCtx, db_session
@@ -109,11 +112,24 @@ async def get_wallets(
 
 async def create_wallet(wallet_request: CreateWalletRequest) -> WalletResponse:
     """Create a new wallet"""
-    async with db_session() as session_ctx:
-        wallet = await wallets.create_wallet(
-            session=session_ctx.session, wallet_request=wallet_request
-        )
-        session_ctx.add_to_refresh([wallet])
+    try:
+        async with db_session() as session_ctx:
+            wallet = await wallets.create_wallet(
+                session=session_ctx.session, wallet_request=wallet_request
+            )
+            session_ctx.add_to_refresh([wallet])
+    except IntegrityError as e:
+        pgcode = getattr(e.orig, "pgcode", None)
+        if pgcode == PG_UNIQUE_VIOLATION_ERROR:
+            error_cause = getattr(e.orig, "__cause__", None)
+            constraint_name = getattr(error_cause, "constraint_name", "") or ""
+
+            if constraint_name == "ix_wallets_external_transaction_id":
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=DUPLICATE_TRANSACTION_ERROR,
+                )
+        raise
     return wallet.to_response()
 
 
