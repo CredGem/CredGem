@@ -30,7 +30,7 @@ class TransactionBase:
     credit_type_id: str
     description: str
     issuer: str
-    external_transaction_id: Optional[str] = field(default=None)
+    external_id: Optional[str] = field(default=None)
     context: Optional[Dict[str, Any]] = field(default_factory=dict)
 
 

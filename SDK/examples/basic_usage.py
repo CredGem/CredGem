@@ -43,7 +43,7 @@ async def main():
                 credit_type_id=credit_type.id,
                 description="Welcome bonus",
                 issuer="system",
-                external_transaction_id=f"welcome_bonus_cust_123_{_id}",
+                external_id=f"welcome_bonus_cust_123_{_id}",
                 context={"source": "welcome_bonus"},
             )
         )
@@ -57,7 +57,7 @@ async def main():
                 credit_type_id=credit_type.id,
                 description="Hold for pending purchase",
                 issuer="store_app",
-                external_transaction_id=f"purchase_hold_123_{_id}",
+                external_id=f"purchase_hold_123_{_id}",
                 context={"order_id": "order_123"},
             )
         )
@@ -72,7 +72,7 @@ async def main():
                 description="Purchase completion",
                 issuer="store_app",
                 hold_transaction_id=hold.id,
-                external_transaction_id=f"purchase_debit_123_{_id}",
+                external_id=f"purchase_debit_123_{_id}",
                 context={"order_id": "order_123"},
             )
         )

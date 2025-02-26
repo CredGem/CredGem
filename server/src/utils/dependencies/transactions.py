@@ -25,14 +25,14 @@ async def transaction_ctx(request: Request) -> TransactionContext:
 
     body = await request.json()
 
-    external_transaction_id = body.get("external_transaction_id")
-    if external_transaction_id:
-        external_transaction = (
+    external_id = body.get("external_id")
+    if external_id:
+        _transaction = (
             await transactions_service.get_transaction_by_external_id(
-                external_transaction_id=external_transaction_id
+                external_id=external_id
             )
         )
-        if external_transaction:
+        if _transaction:
             raise HTTPException(
                 status_code=409,
                 detail=DUPLICATE_TRANSACTION_ERROR,

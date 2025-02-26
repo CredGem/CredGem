@@ -620,7 +620,7 @@ class TestTransactions:
             description="Test duplicate transaction",
             payload=DepositTransactionRequestPayload(amount=100),
             issuer="test_user",
-            external_transaction_id=transaction_id,
+            external_id=transaction_id,
         )
 
         # First attempt should succeed
@@ -644,7 +644,7 @@ class TestTransactions:
             description="Test duplicate transaction with different type",
             payload=DebitTransactionRequestPayload(amount=50),
             issuer="test_user",
-            external_transaction_id=transaction_id,
+            external_id=transaction_id,
         )
 
         response = await client.post(

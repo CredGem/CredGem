@@ -31,7 +31,7 @@ class DrawCredits:
         description: str,
         issuer: str,
         context: Optional[Dict[str, Any]] = None,
-        external_transaction_id: Optional[str] = None,
+        external_id: Optional[str] = None,
         skip_hold: bool = False,
     ):
         """Initialize the DrawCredits context.
@@ -54,7 +54,7 @@ class DrawCredits:
         self.description = description
         self.issuer = issuer
         self.context = context
-        self.external_transaction_id = external_transaction_id
+        self.external_id = external_id
         self.skip_hold = skip_hold
         self._hold_transaction: Optional[TransactionResponse] = None
         self._debited = False
@@ -62,13 +62,13 @@ class DrawCredits:
     async def _get_existing_transaction(
         self, transaction_type: str
     ) -> Optional[TransactionResponse]:
-        """Get an existing transaction by external_transaction_id and type."""
-        if not self.external_transaction_id:
+        """Get an existing transaction by external_id and type."""
+        if not self.external_id:
             return None
 
-        external_id = f"{self.external_transaction_id}_{transaction_type}"
+        external_id = f"{self.external_id}_{transaction_type}"
         transactions = await self.client.transactions.list(
-            wallet_id=self.wallet_id, external_transaction_id=external_id
+            wallet_id=self.wallet_id, external_id=external_id
         )
         return transactions[0] if transactions else None
 
@@ -84,8 +84,8 @@ class DrawCredits:
                         description=self.description,
                         issuer=self.issuer,
                         context=self.context,
-                        external_transaction_id=f"{self.external_transaction_id}_hold"
-                        if self.external_transaction_id
+                        external_id=f"{self.external_id}_hold"
+                        if self.external_id
                         else None,
                     )
                 )
@@ -95,12 +95,12 @@ class DrawCredits:
                     existing_hold = await self._get_existing_transaction("hold")
                     if existing_hold:
                         logger.info(
-                            f"Found existing hold for transaction {self.external_transaction_id}"
+                            f"Found existing hold for transaction {self.external_id}"
                         )
                         self._hold_transaction = existing_hold
                     else:
                         logger.error(
-                            f"409 Conflict but couldn't find existing hold for {self.external_transaction_id}"
+                            f"409 Conflict but couldn't find existing hold for {self.external_id}"
                         )
                         raise
                 else:
@@ -123,8 +123,8 @@ class DrawCredits:
                         description=f"Auto-release of {self.description}",
                         issuer=self.issuer,
                         context=self.context,
-                        external_transaction_id=f"{self.external_transaction_id}_release"
-                        if self.external_transaction_id
+                        external_id=f"{self.external_id}_release"
+                        if self.external_id
                         else None,
                     )
                 )
@@ -134,11 +134,11 @@ class DrawCredits:
                     existing_release = await self._get_existing_transaction("release")
                     if existing_release:
                         logger.info(
-                            f"Release already processed for transaction {self.external_transaction_id}"
+                            f"Release already processed for transaction {self.external_id}"
                         )
                     else:
                         logger.error(
-                            f"409 Conflict but couldn't find existing release for {self.external_transaction_id}"
+                            f"409 Conflict but couldn't find existing release for {self.external_id}"
                         )
                 else:
                     logger.error(f"Failed to release hold: {e}")
@@ -167,8 +167,8 @@ class DrawCredits:
                         description=self.description,
                         issuer=self.issuer,
                         context=context,
-                        external_transaction_id=f"{self.external_transaction_id}_debit"
-                        if self.external_transaction_id
+                        external_id=f"{self.external_id}_debit"
+                        if self.external_id
                         else None,
                     )
                 )
@@ -185,8 +185,8 @@ class DrawCredits:
                             description=self.description,
                             issuer=self.issuer,
                             context=context,
-                            external_transaction_id=f"{self.external_transaction_id}_debit"
-                            if self.external_transaction_id
+                            external_id=f"{self.external_id}_debit"
+                            if self.external_id
                             else None,
                             hold_transaction_id=self._hold_transaction.id,
                         )
@@ -199,13 +199,13 @@ class DrawCredits:
                         existing_debit = await self._get_existing_transaction("debit")
                         if existing_debit:
                             logger.info(
-                                f"Debit already processed for transaction {self.external_transaction_id}"
+                                f"Debit already processed for transaction {self.external_id}"
                             )
                             self._debited = True
                             return existing_debit
                         else:
                             logger.error(
-                                f"409 Conflict but couldn't find existing debit for {self.external_transaction_id}"
+                                f"409 Conflict but couldn't find existing debit for {self.external_id}"
                             )
                             raise
                     raise

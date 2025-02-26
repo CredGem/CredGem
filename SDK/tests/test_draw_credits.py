@@ -70,7 +70,7 @@ async def test_success_flow_with_hold(client, funded_wallet, credit_type):
         amount=hold_amount,
         description="Test transaction",
         issuer="test_system",
-        external_transaction_id=transaction_id,
+        external_id=transaction_id,
         context={"test": "value"},
     ) as draw:
         # Verify funds are held
@@ -100,14 +100,14 @@ async def test_success_flow_skip_hold(client, funded_wallet, credit_type):
     """Test successful flow with skip_hold=True."""
     initial_balance = 1000
     debit_amount = 10.00
-    external_transaction_id = f"test_tx_{datetime.now().timestamp()}"
+    external_id = f"test_tx_{datetime.now().timestamp()}"
     async with client.draw_credits(
         wallet_id=funded_wallet.id,
         credit_type_id=credit_type.id,
         amount=debit_amount,
         description="Test direct debit",
         issuer="test_system",
-        external_transaction_id=external_transaction_id,
+        external_id=external_id,
         skip_hold=True,
     ) as draw:
         # Verify no funds are held
@@ -134,7 +134,7 @@ async def test_success_flow_skip_hold(client, funded_wallet, credit_type):
 async def test_exception_auto_release(client, funded_wallet, credit_type):
     """Test automatic release on exception in context body."""
     hold_amount = 10
-    external_transaction_id = f"test_tx_{datetime.now().timestamp()}"
+    external_id = f"test_tx_{datetime.now().timestamp()}"
     with pytest.raises(ValueError):
         async with client.draw_credits(
             wallet_id=funded_wallet.id,
@@ -142,7 +142,7 @@ async def test_exception_auto_release(client, funded_wallet, credit_type):
             amount=hold_amount,
             description="Test exception",
             issuer="test_system",
-            external_transaction_id=external_transaction_id,
+            external_id=external_id,
         ):
             # Verify funds are held
             wallet_info = await client.wallets.get(funded_wallet.id)
@@ -242,7 +242,7 @@ async def test_reuse_existing_hold(client, funded_wallet, credit_type):
     """Test reusing an existing hold with the same external transaction ID."""
     initial_balance = 1000
     hold_amount = 10
-    external_transaction_id = f"test_tx_{datetime.now().timestamp()}"
+    external_id = f"test_tx_{datetime.now().timestamp()}"
 
     # First attempt - create hold without debit
     async with client.draw_credits(
@@ -251,7 +251,7 @@ async def test_reuse_existing_hold(client, funded_wallet, credit_type):
         amount=hold_amount,
         description="Test hold reuse",
         issuer="test_system",
-        external_transaction_id=external_transaction_id,
+        external_id=external_id,
     ) as draw:
         # Verify funds are held
         wallet_info = await client.wallets.get(funded_wallet.id)
@@ -269,7 +269,7 @@ async def test_reuse_existing_hold(client, funded_wallet, credit_type):
         amount=hold_amount,
         description="Test hold reuse",
         issuer="test_system",
-        external_transaction_id=external_transaction_id,
+        external_id=external_id,
     ) as draw:
         # Verify the hold is still active
         wallet_info = await client.wallets.get(funded_wallet.id)

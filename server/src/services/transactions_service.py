@@ -21,12 +21,12 @@ async def get_transaction(transaction_id: str) -> TransactionResponse:
 
 
 async def get_transaction_by_external_id(
-    external_transaction_id: str,
+    external_id: str,
 ) -> TransactionResponse | None:
     async with db_session() as session_ctx:
         session = session_ctx.session
         transaction = await transactions_db.get_transaction_by_external_id(
-            session=session, external_transaction_id=external_transaction_id
+            session=session, external_id=external_id
         )
     return transaction.to_response() if transaction else None
 
@@ -34,7 +34,7 @@ async def get_transaction_by_external_id(
 async def list_transactions(
     wallet_id: Optional[str],
     credit_type_id: Optional[str],
-    external_transaction_id: Optional[str],
+    external_id: Optional[str],
     context: Dict[str, str],
     pagination: PaginationRequest,
     date_range: DateTimeRange,
@@ -45,7 +45,7 @@ async def list_transactions(
             session=session,
             wallet_id=wallet_id,
             credit_type_id=credit_type_id,
-            external_transaction_id=external_transaction_id,
+            external_id=external_id,
             pagination=pagination,
             context=context,
             date_range=date_range,

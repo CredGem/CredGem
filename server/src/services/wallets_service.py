@@ -124,7 +124,7 @@ async def create_wallet(wallet_request: CreateWalletRequest) -> WalletResponse:
             error_cause = getattr(e.orig, "__cause__", None)
             constraint_name = getattr(error_cause, "constraint_name", "") or ""
 
-            if constraint_name == "ix_wallets_external_transaction_id":
+            if constraint_name == "ix_wallets_external_id":
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=DUPLICATE_TRANSACTION_ERROR,

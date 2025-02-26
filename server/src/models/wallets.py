@@ -21,7 +21,7 @@ class WalletResponse(DBModelResponse):
     context: dict
     balances: List[BalanceResponse]
     status: WalletStatus
-    external_transaction_id: Optional[str] = None
+    external_id: Optional[str] = None
 
 
 class Wallet(DBModel):
@@ -34,7 +34,7 @@ class Wallet(DBModel):
     status: Mapped[WalletStatus] = mapped_column(
         SQLAlchemyEnum(WalletStatus), nullable=False, default=WalletStatus.ACTIVE
     )
-    external_transaction_id: Mapped[Optional[str]] = mapped_column(
+    external_id: Mapped[Optional[str]] = mapped_column(
         String, index=True, unique=True, nullable=True
     )
 
@@ -60,14 +60,14 @@ class Wallet(DBModel):
             context=self.context,
             status=self.status,
             balances=[balance.to_response() for balance in self.balances],
-            external_transaction_id=self.external_transaction_id,
+            external_id=self.external_id,
         )
 
 
 class CreateWalletRequest(BaseModel):
     name: str
     context: dict = {}
-    external_transaction_id: Optional[str] = None
+    external_id: Optional[str] = None
 
 
 class UpdateWalletRequest(BaseModel):

@@ -78,7 +78,7 @@ async def create_wallet(
         id=str(uuid4()),
         name=wallet_request.name,
         context=wallet_request.context,
-        external_transaction_id=wallet_request.external_transaction_id,
+        external_id=wallet_request.external_id,
     )
     session.add(wallet)
     return wallet
