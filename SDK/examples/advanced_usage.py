@@ -73,7 +73,7 @@ async def create_customer_wallet(
                     credit_type_id=credit_types[credit_type],
                     description=description,
                     issuer="onboarding_system",
-                    external_transaction_id=f"welcome_{customer_id}_{credit_type}",
+                    external_id=f"welcome_{customer_id}_{credit_type}",
                     context={"event": "customer_onboarding"},
                 )
             )
@@ -102,7 +102,7 @@ async def process_purchase(
                 credit_type_id=credit_type_id,
                 description=f"Hold for order {order_id}",
                 issuer="purchase_system",
-                external_transaction_id=f"hold_{order_id}_{_id}",
+                external_id=f"hold_{order_id}_{_id}",
                 context={"order_id": order_id, "type": "purchase"},
             )
         )
@@ -119,7 +119,7 @@ async def process_purchase(
                 description=f"Purchase for order {order_id}",
                 issuer="purchase_system",
                 hold_transaction_id=hold.id,
-                external_transaction_id=f"debit_{order_id}_{_id}",
+                external_id=f"debit_{order_id}_{_id}",
                 context={"order_id": order_id, "type": "purchase"},
             )
         )
@@ -137,7 +137,7 @@ async def process_purchase(
                         credit_type_id=credit_type_id,
                         description=f"Release failed purchase hold for order {order_id}",
                         issuer="purchase_system",
-                        external_transaction_id=f"release_{order_id}_{_id}",
+                        external_id=f"release_{order_id}_{_id}",
                         context={"order_id": order_id, "type": "purchase_failed"},
                     )
                 )

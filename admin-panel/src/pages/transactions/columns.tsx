@@ -20,7 +20,7 @@ export type Transaction = {
     id: string
     type: TransactionType
     credit_type_id: string
-    external_transaction_id: string | null
+    external_id: string | null
     hold_status: string | null
     status: "active" | "inactive"
     context: Record<string, string>
@@ -69,10 +69,10 @@ export const columns: ColumnDef<Transaction>[] = [
         }
     },
     {
-        accessorKey: "external_transaction_id",
+        accessorKey: "external_id",
         header: "External ID",
         cell: ({ row }) => {
-            const externalId = row.getValue("external_transaction_id") as string | null
+            const externalId = row.getValue("external_id") as string | null
             return <div>{externalId || "-"}</div>
         },
     },

@@ -33,7 +33,7 @@ async def create_transaction(
     transaction = TransactionDBModel(
         id=str(uuid4()),
         type=transaction_request.type,
-        external_transaction_id=transaction_request.external_transaction_id,
+        external_id=transaction_request.external_id,
         wallet_id=wallet_id,
         credit_type_id=transaction_request.credit_type_id,
         issuer=transaction_request.issuer,
@@ -92,7 +92,7 @@ async def list_transactions(
     session: AsyncSession,
     wallet_id: Optional[str],
     credit_type_id: Optional[str],
-    external_transaction_id: Optional[str],
+    external_id: Optional[str],
     pagination: PaginationRequest,
     context: Dict[str, str],
     date_range: DateTimeRange,
@@ -103,10 +103,8 @@ async def list_transactions(
         query = query.where(TransactionDBModel.wallet_id == wallet_id)
     if credit_type_id:
         query = query.where(TransactionDBModel.credit_type_id == credit_type_id)
-    if external_transaction_id:
-        query = query.where(
-            TransactionDBModel.external_transaction_id == external_transaction_id
-        )
+    if external_id:
+        query = query.where(TransactionDBModel.external_id == external_id)
     if context:
         for key, value in context.items():
             query = query.where(TransactionDBModel.context[key].as_string() == value)
@@ -132,3 +130,13 @@ async def list_transactions(
         page_size=pagination.page_size,
         total_count=total or 0,
     )
+
+
+async def get_transaction_by_external_id(
+    session: AsyncSession,
+    external_id: str,
+) -> TransactionDBModel | None:
+    result = await session.execute(
+        select(TransactionDBModel).where(TransactionDBModel.external_id == external_id)
+    )
+    return result.scalar_one_or_none()

@@ -26,8 +26,8 @@ class TransactionsAPI(BaseAPI):
             "context": request.context or {},
             "payload": {"type": "hold", "amount": request.amount},
         }
-        if request.external_transaction_id:
-            payload["external_transaction_id"] = request.external_transaction_id
+        if request.external_id:
+            payload["external_id"] = request.external_id
 
         response = await self._post(
             f"/wallets/{request.wallet_id}/hold", json=payload, response_model=None
@@ -52,8 +52,8 @@ class TransactionsAPI(BaseAPI):
                 else None,
             },
         }
-        if request.external_transaction_id:
-            payload["external_transaction_id"] = request.external_transaction_id
+        if request.external_id:
+            payload["external_id"] = request.external_id
 
         try:
             response = await self._post(
@@ -83,8 +83,8 @@ class TransactionsAPI(BaseAPI):
             },
         }
 
-        if request.external_transaction_id is not None:
-            payload["external_transaction_id"] = request.external_transaction_id
+        if request.external_id is not None:
+            payload["external_id"] = request.external_id
 
         response = await self._post(
             f"/wallets/{request.wallet_id}/release",
@@ -120,7 +120,7 @@ class TransactionsAPI(BaseAPI):
     async def list(
         self,
         wallet_id: Optional[str] = None,
-        external_transaction_id: Optional[str] = None,
+        external_id: Optional[str] = None,
         page: int = 1,
         page_size: int = 50,
     ) -> List[TransactionResponse]:
@@ -128,8 +128,8 @@ class TransactionsAPI(BaseAPI):
         params: Dict[str, Any] = {"page": page, "page_size": page_size}
         if wallet_id:
             params["wallet_id"] = wallet_id
-        if external_transaction_id:
-            params["external_transaction_id"] = external_transaction_id
+        if external_id:
+            params["external_id"] = external_id
         response = await self._get("/transactions", params=params)
         return [
             TransactionResponse.from_dict(item) for item in response.get("data", [])

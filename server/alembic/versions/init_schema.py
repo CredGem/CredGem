@@ -50,7 +50,9 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
+        sa.Column("external_id", sa.String(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
+        sa.Index("ix_wallets_external_id", "external_id", unique=True),
     )
 
     # Create credit_types table
@@ -84,7 +86,7 @@ def upgrade() -> None:
             ),
             nullable=False,
         ),
-        sa.Column("external_transaction_id", sa.String(), nullable=True),
+        sa.Column("external_id", sa.String(), nullable=True),
         sa.Column("wallet_id", sa.String(), nullable=False),
         sa.Column("credit_type_id", sa.String(), nullable=False),
         sa.Column("issuer", sa.String(), nullable=False),
@@ -127,8 +129,8 @@ def upgrade() -> None:
         ),
         sa.Index("ix_transactions_credit_type_id", "credit_type_id", unique=False),
         sa.Index(
-            "ix_transactions_external_transaction_id",
-            "external_transaction_id",
+            "ix_transactions_external_id",
+            "external_id",
             unique=True,
         ),
         sa.Index("ix_transactions_wallet_id", "wallet_id", unique=False),

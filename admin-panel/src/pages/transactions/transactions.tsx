@@ -34,7 +34,7 @@ export default function Transactions() {
     const _enrichedTransactions = transactions.map((transaction) => ({
       ...transaction,
       credit_type: creditTypes.find((type) => type.id === transaction.credit_type_id)?.name || "Unknown",
-      external_transaction_id: null,
+      external_id: null,
       hold_status: null,
       status: "active" as const,
     }));

@@ -75,7 +75,10 @@ async def create_wallet(
 ) -> Wallet:
     """Create a new wallet"""
     wallet = Wallet(
-        id=str(uuid4()), name=wallet_request.name, context=wallet_request.context
+        id=str(uuid4()),
+        name=wallet_request.name,
+        context=wallet_request.context,
+        external_id=wallet_request.external_id,
     )
     session.add(wallet)
     return wallet

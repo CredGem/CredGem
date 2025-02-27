@@ -51,7 +51,7 @@ class CredGemClient:
         amount: float,
         description: str = "",
         issuer: str = "",
-        external_transaction_id: Optional[str] = None,
+        external_id: Optional[str] = None,
         context: Optional[Dict] = None,
         skip_hold: bool = False,
     ) -> DrawCredits:
@@ -63,7 +63,7 @@ class CredGemClient:
             amount: The amount of credits to hold/debit
             description: A description of the transaction
             issuer: The issuer of the transaction
-            external_transaction_id: Optional transaction ID for idempotency
+            external_id: Optional transaction ID for idempotency
             context: Optional context data for the transaction
             skip_hold: Whether to skip the hold step and debit directly
 
@@ -77,7 +77,7 @@ class CredGemClient:
             amount=amount,
             description=description,
             issuer=issuer,
-            external_transaction_id=external_transaction_id,
+            external_id=external_id,
             context=context,
             skip_hold=skip_hold,
         )

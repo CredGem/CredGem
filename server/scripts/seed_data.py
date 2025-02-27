@@ -152,7 +152,7 @@ class TransactionGenerator:
             wallet_id=self.wallet_id,
             credit_type_id=self.credit_type_id,
             description=description,
-            external_transaction_id=(
+            external_id=(
                 f"seed_{self.wallet_id}_"
                 f"{self.credit_type_id}_{self.transaction_counter}"
             ),

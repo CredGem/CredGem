@@ -42,7 +42,7 @@ class TransactionRequestBase(BaseModel):
     type: TransactionType
     credit_type_id: str
     description: str
-    external_transaction_id: Optional[str] = Field(
+    external_id: Optional[str] = Field(
         default=None, description="External transaction id"
     )
     payload: Any
@@ -133,7 +133,7 @@ class TransactionResponse(DBModelResponse):
     credit_type_id: str
     description: str
     context: Optional[Dict[str, Any]]
-    external_transaction_id: Optional[str]
+    external_id: Optional[str]
     payload: Any
     balance_snapshot: Optional[dict] = None
     subscription_id: Optional[str] = None
@@ -145,7 +145,7 @@ class TransactionDBModel(DBModel):
     __tablename__ = "transactions"
 
     type: Mapped[TransactionType] = mapped_column(SQLEnum(TransactionType))
-    external_transaction_id: Mapped[Optional[str]] = mapped_column(
+    external_id: Mapped[Optional[str]] = mapped_column(
         String, index=True, unique=True, nullable=True
     )
     wallet_id: Mapped[str] = mapped_column(String, index=True)
@@ -174,7 +174,7 @@ class TransactionDBModel(DBModel):
             credit_type_id=self.credit_type_id,
             description=self.description,
             context=self.context,
-            external_transaction_id=self.external_transaction_id,
+            external_id=self.external_id,
             payload=self.payload,
             balance_snapshot=self.balance_snapshot,
             subscription_id=self.subscription_id,
