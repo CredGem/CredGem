@@ -46,12 +46,12 @@
 - **Testing**: Jest, React Testing Library
 
 ### Server
-- **Language**: Python 3.11+
+- **Language**: Python 3.9+
 - **Framework**: FastAPI
 - **Database**: PostgreSQL
 - **ORM**: SQLAlchemy
 - **Package Manager**: Poetry
-- **Testing**: pytest with pytest-cov for coverage
+- **Testing**: pytest
 - **Code Quality**: pylint, black, isort
 - **Documentation**: OpenAPI/Swagger
 
@@ -97,7 +97,7 @@ CredGem/
 Before you begin, ensure you have the following installed:
 - Docker Engine (20.10.0+)
 - Node.js (18.x+)
-- Python (3.10+)
+- Python (3.9+)
 - Poetry (1.4.0+)
 - PostgreSQL (15+)
 

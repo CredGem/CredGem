@@ -27,10 +27,8 @@ async def transaction_ctx(request: Request) -> TransactionContext:
 
     external_id = body.get("external_id")
     if external_id:
-        _transaction = (
-            await transactions_service.get_transaction_by_external_id(
-                external_id=external_id
-            )
+        _transaction = await transactions_service.get_transaction_by_external_id(
+            external_id=external_id
         )
         if _transaction:
             raise HTTPException(

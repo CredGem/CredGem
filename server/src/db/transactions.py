@@ -104,9 +104,7 @@ async def list_transactions(
     if credit_type_id:
         query = query.where(TransactionDBModel.credit_type_id == credit_type_id)
     if external_id:
-        query = query.where(
-            TransactionDBModel.external_id == external_id
-        )
+        query = query.where(TransactionDBModel.external_id == external_id)
     if context:
         for key, value in context.items():
             query = query.where(TransactionDBModel.context[key].as_string() == value)
@@ -139,8 +137,6 @@ async def get_transaction_by_external_id(
     external_id: str,
 ) -> TransactionDBModel | None:
     result = await session.execute(
-        select(TransactionDBModel).where(
-            TransactionDBModel.external_id == external_id
-        )
+        select(TransactionDBModel).where(TransactionDBModel.external_id == external_id)
     )
     return result.scalar_one_or_none()

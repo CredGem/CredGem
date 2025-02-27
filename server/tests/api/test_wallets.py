@@ -26,9 +26,7 @@ class TestWalletEndpoints:
         assert data["context"]["user_id"] == user_id
         assert "id" in data
 
-    async def test_create_wallet_with_same_external_id(
-        self, client: httpx.AsyncClient
-    ):
+    async def test_create_wallet_with_same_external_id(self, client: httpx.AsyncClient):
         user_id = str(uuid4())
         wallet_name = f"test_wallet_{user_id}"
         external_id = str(uuid4())

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "credgem-sdk"
-version = "0.1.6"
+version = "0.1.7"
 description = "Python SDK for CredGem API - A powerful credit management system"
 authors = ["CredGem <support@credgem.com>"]
 readme = "README.md"
