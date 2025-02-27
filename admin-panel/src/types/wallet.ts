@@ -59,7 +59,7 @@ export interface TransactionRequest {
   type: TransactionType;
   credit_type_id: string;
   description: string;
-  idempotency_key: string;
+  external_id: string;
   payload: TransactionPayload;
   issuer: string;
   context: Record<string, string>;
@@ -69,7 +69,7 @@ export interface AdjustRequest {
   type: "adjust";
   credit_type_id: string;
   description: string;
-  idempotency_key: string;
+  external_id: string;
   payload: {
     type: "adjust";
     amount: number;
@@ -87,7 +87,7 @@ export interface Transaction {
   credit_type_id: string;
   description: string;
   context: Record<string, string>;
-  idempotency_key: string;
+  external_id: string;
   payload: {
     type: "deposit" | "debit" | "adjust";
     amount: number;
@@ -110,7 +110,7 @@ export interface BaseTransactionRequest {
   type: "deposit" | "debit" | "adjust";
   credit_type_id: string;
   description: string;
-  idempotency_key: string;
+  external_id: string;
   issuer: string;
   context: Record<string, string>;
 }
