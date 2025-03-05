@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.core.error_handlers import setup_error_handlers
 from src.core.lifespan import lifespan
 from src.core.settings import settings
 from src.routes import router as router_v1
@@ -11,6 +12,8 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     lifespan=lifespan,
 )
+
+setup_error_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,

@@ -620,7 +620,7 @@ class TestTransactions:
             description="Test duplicate transaction",
             payload=DepositTransactionRequestPayload(amount=100),
             issuer="test_user",
-            external_transaction_id=transaction_id,
+            external_id=transaction_id,
         )
 
         # First attempt should succeed
@@ -644,7 +644,7 @@ class TestTransactions:
             description="Test duplicate transaction with different type",
             payload=DebitTransactionRequestPayload(amount=50),
             issuer="test_user",
-            external_transaction_id=transaction_id,
+            external_id=transaction_id,
         )
 
         response = await client.post(
@@ -675,3 +675,39 @@ class TestTransactions:
         )
         assert transaction_response.status_code == status.HTTP_200_OK
         assert transaction_response.json()["id"] == transaction_id
+
+    @pytest.mark.parametrize(
+        "transaction_type,request_class,payload_class",
+        [
+            ("deposit", DepositTransactionRequest, DepositTransactionRequestPayload),
+            ("debit", DebitTransactionRequest, DebitTransactionRequestPayload),
+            ("hold", HoldTransactionRequest, HoldTransactionRequestPayload),
+            ("release", ReleaseTransactionRequest, ReleaseTransactionRequestPayload),
+            ("adjust", AdjustTransactionRequest, AdjustTransactionRequestPayload),
+        ],
+    )
+    async def test_nonexistent_wallet(
+        self, client: AsyncClient, transaction_type, request_class, payload_class
+    ):
+        wallet_id = str(uuid4())
+        credit_type_id = str(uuid4())
+
+        # Prepare payload based on transaction type
+        payload_kwargs = (
+            {"amount": 100}
+            if transaction_type != "release"
+            else {"hold_transaction_id": str(uuid4())}
+        )
+
+        transaction_request = request_class(
+            credit_type_id=credit_type_id,
+            description=f"Test {transaction_type} transaction",
+            payload=payload_class(**payload_kwargs),
+            issuer="test_user",
+        )
+
+        response = await client.post(
+            f"{self.base_url}/wallets/{wallet_id}/{transaction_type}",
+            json=transaction_request.model_dump(),
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND

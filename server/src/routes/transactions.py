@@ -26,7 +26,7 @@ router = APIRouter(
 async def list_transactions(
     credit_type_id: Optional[str] = Query(None),
     wallet_id: Optional[str] = Query(None),
-    external_transaction_id: Optional[str] = Query(None),
+    external_id: Optional[str] = Query(None),
     context: Dict[str, str] = Depends(dict_parser("context")),
     pagination: PaginationRequest = Depends(get_pagination),
     date_range: DateTimeRange = Depends(get_datetime_range),
@@ -34,7 +34,7 @@ async def list_transactions(
     return await transactions_service.list_transactions(
         credit_type_id=credit_type_id,
         wallet_id=wallet_id,
-        external_transaction_id=external_transaction_id,
+        external_id=external_id,
         context=context,
         pagination=pagination,
         date_range=date_range,

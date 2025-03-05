@@ -24,6 +24,7 @@ from src.models.wallets import (
 )
 from src.services import wallets_service
 from src.utils.dependencies import dict_parser, get_pagination
+from src.utils.dependencies.transactions import TransactionContext, transaction_ctx
 from src.utils.router import APIRouter
 
 router = APIRouter(
@@ -109,6 +110,7 @@ async def delete_wallet(wallet_id: str):
 async def create_deposit_transaction(
     wallet_id: str,
     transaction_request: DepositTransactionRequest,
+    transaction_ctx: TransactionContext = Depends(transaction_ctx),
 ) -> TransactionResponse:
     return await wallets_service.create_deposit_transaction(
         wallet_id=wallet_id, transaction_request=transaction_request
@@ -123,6 +125,7 @@ async def create_deposit_transaction(
 async def create_debit_transaction(
     wallet_id: str,
     transaction_request: DebitTransactionRequest,
+    transaction_ctx: TransactionContext = Depends(transaction_ctx),
 ) -> TransactionResponse:
     return await wallets_service.create_debit_transaction(
         wallet_id=wallet_id, transaction_request=transaction_request
@@ -137,6 +140,7 @@ async def create_debit_transaction(
 async def create_hold_transaction(
     wallet_id: str,
     transaction_request: HoldTransactionRequest,
+    transaction_ctx: TransactionContext = Depends(transaction_ctx),
 ) -> TransactionResponse:
     return await wallets_service.create_hold_transaction(
         wallet_id=wallet_id, transaction_request=transaction_request
@@ -151,6 +155,7 @@ async def create_hold_transaction(
 async def create_release_transaction(
     wallet_id: str,
     transaction_request: ReleaseTransactionRequest,
+    transaction_ctx: TransactionContext = Depends(transaction_ctx),
 ) -> TransactionResponse:
     return await wallets_service.create_release_transaction(
         wallet_id=wallet_id, transaction_request=transaction_request
@@ -165,6 +170,7 @@ async def create_release_transaction(
 async def create_adjust_transaction(
     wallet_id: str,
     transaction_request: AdjustTransactionRequest,
+    transaction_ctx: TransactionContext = Depends(transaction_ctx),
 ) -> TransactionResponse:
     return await wallets_service.create_adjust_transaction(
         wallet_id=wallet_id, transaction_request=transaction_request

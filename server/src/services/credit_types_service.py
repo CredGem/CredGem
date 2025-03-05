@@ -11,6 +11,16 @@ from src.models.credit_types import (
 from src.utils.ctx_managers import db_session
 
 
+async def get_credit_type(credit_type_id: str) -> CreditTypeResponse:
+    async with db_session(read_only=True) as session_ctx:
+        credit_type = await credit_types_db.get_credit_type(
+            db=session_ctx.session, credit_type_id=credit_type_id
+        )
+        if not credit_type:
+            raise HTTPException(status_code=404, detail="Credit type not found")
+    return credit_type.to_response()
+
+
 async def get_credit_types() -> List[CreditTypeResponse]:
     async with db_session(read_only=True) as session_ctx:
         credit_types = await credit_types_db.get_credit_types(db=session_ctx.session)

@@ -1,82 +1,75 @@
-from typing import Dict, List, Optional
-from datetime import datetime
-from enum import Enum
+from typing import Any, Dict, Optional
 
-from pydantic import BaseModel
+from credgem.models.wallets import (
+    PaginatedWalletResponse,
+    WalletRequest,
+    WalletResponse,
+    WalletUpdateRequest,
+)
 
-from credgem.api.base import BaseAPI
-
-
-class WalletStatus(str, Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-
-
-class BalanceResponse(BaseModel):
-    id: str
-    created_at: datetime
-    updated_at: datetime
-    wallet_id: str
-    credit_type_id: str
-    available: float
-    held: float
-    spent: float
-    overall_spent: float
-
-
-class WalletBase(BaseModel):
-    name: str
-    context: dict = {}
-
-
-class CreateWalletRequest(WalletBase):
-    pass
-
-
-class WalletResponse(WalletBase):
-    id: str
-    balances: List[BalanceResponse]
-    status: WalletStatus
-    created_at: datetime
-    updated_at: datetime
-
-
-class UpdateWalletRequest(BaseModel):
-    name: Optional[str] = None
-    context: Optional[dict] = None
-
-
-class PaginatedWalletResponse(BaseModel):
-    page: int
-    page_size: int
-    total_count: int
-    data: List[WalletResponse]
+from ..utils import get_context_filter
+from .base import BaseAPI
 
 
 class WalletsAPI(BaseAPI):
-    async def create(self, name: str, context: dict = {}) -> WalletResponse:
-        """Create a new wallet"""
-        data = CreateWalletRequest(name=name, context=context).model_dump()
-        return await self._post("/wallets", json=data, response_model=WalletResponse)
+    async def create(
+        self,
+        request: WalletRequest,
+    ) -> WalletResponse:
+        payload: Dict[str, Any] = {
+            "name": request.name,
+        }
+        if request.description is not None:
+            payload["description"] = request.description
+        if request.context:
+            payload["context"] = request.context
+
+        response = await self._post("/wallets", json=payload, response_model=None)
+        # Ensure description is properly set in the response
+        if request.description is not None and "description" not in response:
+            response["description"] = request.description
+        return WalletResponse.from_dict(response)
 
     async def get(self, wallet_id: str) -> WalletResponse:
-        """Get a wallet by ID"""
-        return await self._get(f"/wallets/{wallet_id}", response_model=WalletResponse)
-
-    async def update(
-        self, wallet_id: str, name: str | None = None, context: dict | None = None
-    ) -> WalletResponse:
-        """Update a wallet"""
-        data = {}
-        if name is not None:
-            data["name"] = name
-        if context is not None:
-            data["context"] = context
-        return await self._put(f"/wallets/{wallet_id}", json=data, response_model=WalletResponse)
+        response = await self._get(f"/wallets/{wallet_id}", response_model=None)
+        return WalletResponse.from_dict(response)
 
     async def list(
-        self, page: int = 1, page_size: int = 50
+        self,
+        page: int = 1,
+        page_size: int = 50,
+        context: Optional[Dict[str, Any]] = None,
     ) -> PaginatedWalletResponse:
-        """List all wallets"""
-        params = {"page": page, "page_size": page_size}
-        return await self._get("/wallets", params=params, response_model=PaginatedWalletResponse) 
+        params: Dict[str, Any] = {"page": page, "page_size": page_size}
+        if context is not None:
+            params["context"] = get_context_filter(context)
+        response = await self._get("/wallets", params=params, response_model=None)
+        return PaginatedWalletResponse(
+            data=[
+                WalletResponse.from_dict(wallet) for wallet in response.get("data", [])
+            ],
+            page=response.get("page", page),
+            page_size=response.get("page_size", page_size),
+            total_count=response.get("total_count", 0),
+        )
+
+    async def update(
+        self,
+        wallet_id: str,
+        request: WalletUpdateRequest,
+    ) -> WalletResponse:
+        payload = {}
+        if request.name is not None:
+            payload["name"] = request.name
+        if request.description is not None:
+            payload["description"] = request.description
+        if request.context is not None:
+            payload["context"] = request.context
+
+        response = await self._put(
+            f"/wallets/{wallet_id}", json=payload, response_model=None
+        )
+        return WalletResponse.from_dict(response)
+
+    async def delete(self, wallet_id: str) -> None:
+        await self._delete(f"/wallets/{wallet_id}", response_model=None)

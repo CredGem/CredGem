@@ -172,7 +172,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
           const dataWalletDeposit: WalletDepositRequest = {
             credit_type_id: creditTypeId,
             description: description,
-            idempotency_key: issuer,
+            external_id: issuer,
             type: type,
             context: context || {},
             issuer: issuer,
@@ -187,7 +187,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
           const dataWalletDebit: WalletDebitRequest = {
             credit_type_id: creditTypeId,
             description: description,
-            idempotency_key: issuer,
+            external_id: issuer,
             type: type,
             context: context || {},
             issuer: issuer,
@@ -202,7 +202,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
           const dataWalletAdjust: WalletAdjustRequest = {
             credit_type_id: creditTypeId,
             description: description,
-            idempotency_key: issuer,
+            external_id: issuer,
             type: type,
             context: context || {},
             issuer: issuer,

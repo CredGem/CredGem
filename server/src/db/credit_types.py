@@ -52,3 +52,8 @@ async def update_credit_type(
 async def delete_credit_type(db: AsyncSession, credit_type_id: str) -> bool:
     result = await db.execute(delete(CreditType).where(CreditType.id == credit_type_id))
     return result.rowcount > 0
+
+
+async def get_credit_type(db: AsyncSession, credit_type_id: str) -> CreditType | None:
+    result = await db.execute(select(CreditType).where(CreditType.id == credit_type_id))
+    return result.scalar_one_or_none()

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "credgem-sdk"
-version = "0.1.2"
+version = "0.1.7"
 description = "Python SDK for CredGem API - A powerful credit management system"
 authors = ["CredGem <support@credgem.com>"]
 readme = "README.md"
@@ -25,13 +25,15 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 httpx = "^0.25.0"
-pydantic = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.4"
 pytest-asyncio = "^0.23.5"
+ipykernel = "^6.29.5"
+isort = "^6.0.0"
+pytest-only = "^2.1.2"
 
 [build-system]
 requires = ["poetry-core"]

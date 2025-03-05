@@ -6,3 +6,6 @@ HOLD_TRANSACTION_NOT_HELD_ERROR = "Hold transaction is not in held state"
 HOLD_AMOUNT_EXCEEDS_ERROR = "Requested debit amount exceeds the held amount"
 RELEASE_TRANSACTION_NOT_FOUND_ERROR = "Release transaction not found"
 WALLET_NOT_FOUND_ERROR = "Wallet not found"
+
+
+PG_UNIQUE_VIOLATION_ERROR = "23505"

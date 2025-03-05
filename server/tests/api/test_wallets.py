@@ -26,6 +26,31 @@ class TestWalletEndpoints:
         assert data["context"]["user_id"] == user_id
         assert "id" in data
 
+    async def test_create_wallet_with_same_external_id(self, client: httpx.AsyncClient):
+        user_id = str(uuid4())
+        wallet_name = f"test_wallet_{user_id}"
+        external_id = str(uuid4())
+        request = CreateWalletRequest(
+            name=wallet_name,
+            context={"user_id": user_id},
+            external_id=external_id,
+        )
+        response = await client.post(
+            f"{self.base_url}/wallets/", json=request.model_dump()
+        )
+        assert response.status_code == 201
+
+        # Test creating a new wallet with the same external transaction ID
+        request = CreateWalletRequest(
+            name=wallet_name,
+            context={"user_id": user_id},
+            external_id=external_id,
+        )
+        response = await client.post(
+            f"{self.base_url}/wallets/", json=request.model_dump()
+        )
+        assert response.status_code == 409
+
     async def test_update_wallet(self, client: httpx.AsyncClient):
         user_id = str(uuid4())
         wallet_name = f"test_wallet_{user_id}"
