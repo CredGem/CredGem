@@ -8,10 +8,73 @@ from src.models import CreditType, TransactionDBModel, Wallet
 from src.models.Insights import (
     CreditUsageAggregationResult,
     CreditUsageTimeSeriesAggregationResult,
+    GeneralInsightsResponse,
     TimeGranularity,
     TrendingWalletAggregationResult,
     WalletActivityAggregationResult,
 )
+
+
+async def get_general_insights(
+    session: AsyncSession,
+) -> GeneralInsightsResponse:
+    """
+    Get general insights including transaction counts, deposit counts etc.
+    """
+    # Query for transaction statistics
+    transaction_stats_query = select(
+        func.count().label("total_transactions"),
+        func.sum(
+            case(
+                (TransactionDBModel.type == "DEPOSIT", 1),
+                else_=0,
+            )
+        ).label("total_deposits"),
+        func.sum(
+            case(
+                (TransactionDBModel.type == "DEBIT", 1),
+                else_=0,
+            )
+        ).label("total_debits"),
+        func.sum(
+            case(
+                (TransactionDBModel.type == "HOLD", 1),
+                else_=0,
+            )
+        ).label("total_holds"),
+        func.sum(
+            case(
+                (TransactionDBModel.type == "ADJUST", 1),
+                else_=0,
+            )
+        ).label("total_adjustments"),
+        func.sum(
+            case(
+                (TransactionDBModel.type == "RELEASE", 1),
+                else_=0,
+            )
+        ).label("total_releases"),
+    ).select_from(TransactionDBModel)
+
+    # Get counts for wallets and credit types
+    total_wallets = (await session.execute(select(func.count(Wallet.id)))).scalar() or 0
+    total_credit_types = (
+        await session.execute(select(func.count(CreditType.id)))
+    ).scalar() or 0
+
+    # Execute transaction query and build response
+    results = (await session.execute(transaction_stats_query)).all()
+
+    return GeneralInsightsResponse(
+        total_transactions=results[0][0],
+        total_deposits=results[0][1],
+        total_debits=results[0][2],
+        total_holds=results[0][3],
+        total_adjustments=results[0][4],
+        total_releases=results[0][5],
+        total_wallets=total_wallets,
+        total_credit_types=total_credit_types,
+    )
 
 
 async def get_wallet_activity_aggregation(

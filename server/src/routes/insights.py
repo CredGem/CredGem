@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from src.models.Insights import (
     CreditUsageResponse,
     CreditUsageTimeSeriesResponse,
+    GeneralInsightsResponse,
     TimeGranularity,
     TrendingWalletAggregationResult,
     WalletActivityResponse,
@@ -13,6 +14,14 @@ from src.services import insights_service
 from src.utils.dependencies import DateTimeRange, dict_parser, get_datetime_range
 
 router = APIRouter(prefix="/insights")
+
+
+@router.get("/general", response_model=GeneralInsightsResponse)
+async def get_general_insights() -> GeneralInsightsResponse:
+    """
+    Get general insights including transaction counts, deposit counts etc.
+    """
+    return await insights_service.get_general_insights()
 
 
 @router.get("/wallets/activity", response_model=WalletActivityResponse)

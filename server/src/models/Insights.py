@@ -11,6 +11,17 @@ class TimeGranularity(str, Enum):
     MONTH = "month"
 
 
+class GeneralInsightsResponse(BaseModel):
+    total_transactions: int
+    total_deposits: int
+    total_debits: int
+    total_holds: int
+    total_releases: int
+    total_adjustments: int
+    total_wallets: int
+    total_credit_types: int
+
+
 class InsightTimeSeriesBaseResponse(BaseModel):
     start_date: datetime
     end_date: datetime

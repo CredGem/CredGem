@@ -1,7 +1,8 @@
 import { create } from "zustand";
-import { insightsApi, CreditUsageResponse, CreditUsageTimeSeriesResponse, WalletActivityResponse, TrendingWallet } from "../api/insightsApi";
+import { insightsApi, CreditUsageResponse, CreditUsageTimeSeriesResponse, WalletActivityResponse, TrendingWallet, GeneralInsightsResponse } from "../api/insightsApi";
 
 interface InsightsState {
+  generalInsights: GeneralInsightsResponse | null;
   creditUsage: CreditUsageResponse[] | null;
   creditUsageTimeSeries: CreditUsageTimeSeriesResponse | null;
   walletActivity: WalletActivityResponse | null;
@@ -18,11 +19,13 @@ interface InsightsState {
   fetchCreditUsageTimeSeries: (startDate: string, endDate: string, granularity?: "day" | "week" | "month") => Promise<void>;
   fetchWalletActivity: (startDate: string, endDate: string, granularity?: "day" | "week" | "month", context?: Record<string, string>) => Promise<void>;
   fetchTrendingWallets: (startDate: string, endDate: string, limit?: number) => Promise<void>;
+  fetchGeneralInsights: () => Promise<void>;
 }
 
 export const useInsightsStore = create<InsightsState>((set) => ({
   creditUsage: null,
   creditUsageTimeSeries: null,
+  generalInsights: null,
   walletActivity: null,
   trendingWallets: null,
   isLoading: false,
@@ -32,23 +35,33 @@ export const useInsightsStore = create<InsightsState>((set) => ({
   isLoadingFetchTrendingWallets: false,
   error: null,
 
-  fetchCreditUsage: async (startDate: string, endDate: string) => {
+  fetchGeneralInsights: async () => {
     try {
       set({ isLoading: true, error: null });
-      const data = await insightsApi.getCreditUsage(startDate, endDate);
-      set({ creditUsage: data, isLoading: false });
+      const data = await insightsApi.getGeneralInsights();
+      set({ generalInsights: data, isLoading: false });
     } catch (error) {
       set({ error: (error as Error).message, isLoading: false });
     }
   },
 
+  fetchCreditUsage: async (startDate: string, endDate: string) => {
+    try {
+      set({ isLoadingFetchCreditUsage: true, error: null });
+      const data = await insightsApi.getCreditUsage(startDate, endDate);
+      set({ creditUsage: data, isLoadingFetchCreditUsage: false });
+    } catch (error) {
+      set({ error: (error as Error).message, isLoadingFetchCreditUsage: false });
+    }
+  },
+
   fetchCreditUsageTimeSeries: async (startDate: string, endDate: string, granularity = "day") => {
     try {
-      set({ isLoading: true, error: null });
+      set({ isLoadingFetchCreditUsageTimeSeries: true, error: null });
       const data = await insightsApi.getCreditUsageTimeSeries(startDate, endDate, granularity);
-      set({ creditUsageTimeSeries: data, isLoading: false });
+      set({ creditUsageTimeSeries: data, isLoadingFetchCreditUsageTimeSeries: false });
     } catch (error) {
-      set({ error: (error as Error).message, isLoading: false });
+      set({ error: (error as Error).message, isLoadingFetchCreditUsageTimeSeries: false });
     }
   },
 

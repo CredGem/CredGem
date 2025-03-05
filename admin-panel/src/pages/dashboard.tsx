@@ -65,6 +65,7 @@ function BarChartCard() {
     return Array.from(new Set(creditUsageTimeSeries.points.map(p => p.credit_type_name)));
   }, [creditUsageTimeSeries?.points]);
 
+
   return (
 
     <Card>
@@ -370,7 +371,7 @@ export function DashboardCard({ title, value, description, icon }: DashboardCard
 
 
 export default function Dashboard() {
-  const { walletActivity, trendingWallets, fetchWalletActivity, fetchTrendingWallets } = useInsightsStore();
+  const { walletActivity, trendingWallets, fetchWalletActivity, fetchTrendingWallets, generalInsights, fetchGeneralInsights } = useInsightsStore();
   const { theme } = useTheme()
 
   // You can now check the theme like this:
@@ -383,12 +384,13 @@ export default function Dashboard() {
 
     fetchWalletActivity(startDate.toISOString(), now.toISOString());
     fetchTrendingWallets(startDate.toISOString(), now.toISOString());
+    fetchGeneralInsights();
   }, [fetchWalletActivity, fetchTrendingWallets]);
 
-  const totalTransactions = walletActivity?.points.reduce((sum, point) => sum + point.total_transactions, 0) || 0;
-  const totalDeposits = walletActivity?.points.reduce((sum, point) => sum + point.total_deposits, 0) || 0;
-  const totalDebits = walletActivity?.points.reduce((sum, point) => sum + point.total_debits, 0) || 0;
-  const totalWallets = trendingWallets?.length || 0;
+  const totalTransactions = generalInsights?.total_transactions || 0;
+  const totalDeposits = generalInsights?.total_deposits || 0;
+  const totalDebits = generalInsights?.total_debits || 0;
+  const totalWallets = generalInsights?.total_wallets || 0;
 
   const cardBackgroundVariant = isDarkMode ? BackgroundVariantsDark["blue"] : BackgroundVariantsLight["blue"];
 

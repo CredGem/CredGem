@@ -81,7 +81,7 @@ export const columns: ColumnDef<Transaction>[] = [
         header: "Hold Status",
         cell: ({ row }) => {
             const holdStatus = row.getValue("hold_status") as string | null
-            return <Badge variant="outline">{holdStatus || "No Hold"}</Badge>
+            return <Badge variant="outline">{holdStatus || "-"}</Badge>
         },
     },
     {
