@@ -117,6 +117,42 @@ The application will be available at:
 - Server API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
 
+### Environment Configuration
+
+CredGem uses environment variables for configuration. Follow these steps to set up your environment:
+
+1. **Create a `.env` file**: Create a `.env` file in the root directory of the project.
+
+```bash
+# create a new .env file
+touch .env
+```
+
+2. **Configure environment variables**: Add the following variables to your `.env` file:
+
+```
+# Admin panel configuration
+ADMIN_PANEL_PORT=3000
+VITE_API_URL=http://localhost:8000/api/v1
+
+# Server configuration
+API_V1_STR=/api/v1
+SERVER_HOST=localhost
+SERVER_PORT=8000
+
+# Database configuration
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=credgem
+
+# Redis configuration
+REDIS_PORT=6379
+
+```
+
+3. **Customize as needed**: Modify these values according to your environment and requirements.
+
+
 ### Development Setup
 
 #### Admin Panel Development
