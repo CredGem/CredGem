@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
@@ -7,6 +8,10 @@ from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 from sqlalchemy.sql import func
 
 Base = declarative_base()
+
+class OrderBy(str, Enum):
+    ASC = "asc"
+    DESC = "desc"
 
 
 class DBModel(Base):

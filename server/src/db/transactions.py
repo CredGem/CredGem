@@ -4,7 +4,7 @@ from uuid import uuid4
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.base import PaginationRequest
+from src.models.base import OrderBy, PaginationRequest
 from src.models.transactions import (
     HoldStatus,
     PaginatedTransactionDBModel,
@@ -96,6 +96,7 @@ async def list_transactions(
     pagination: PaginationRequest,
     context: Dict[str, str],
     date_range: DateTimeRange,
+    order_by: OrderBy,
 ) -> PaginatedTransactionDBModel:
     # Base query for both total count and paginated results
     query = select(TransactionDBModel)
@@ -111,6 +112,11 @@ async def list_transactions(
     if date_range:
         query = query.where(TransactionDBModel.created_at >= date_range.start_date)
         query = query.where(TransactionDBModel.created_at <= date_range.end_date)
+
+    if not order_by or order_by == OrderBy.DESC:
+        query = query.order_by(TransactionDBModel.created_at.desc())
+    elif order_by == OrderBy.ASC:
+        query = query.order_by(TransactionDBModel.created_at.asc())
 
     # Get total count
     count_query = select(func.count()).select_from(query.subquery())
