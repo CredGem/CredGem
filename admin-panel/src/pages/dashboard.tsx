@@ -23,6 +23,21 @@ function BarChartCard() {
   const { creditUsageTimeSeries, isLoadingFetchCreditUsageTimeSeries, error, fetchCreditUsageTimeSeries } = useInsightsStore();
   const [timeRange, setTimeRange] = useState("7");
 
+  // Replace the NextUI color function with explicit hex colors
+  const getColorForIndex = (index: number) => {
+    const colors = [
+      "#FF6B6B", // red
+      "#4ECDC4", // teal
+      "#FFD166", // yellow
+      "#6A0572", // purple
+      "#1A936F", // green
+      "#3D5A80", // blue
+      "#F18F01", // orange
+      "#7B4B94"  // violet
+    ];
+    return colors[index % colors.length];
+  };
+
   useEffect(() => {
     const now = new Date();
     const startDate = new Date(now);
@@ -46,11 +61,9 @@ function BarChartCard() {
         };
       }
 
-      // Initialize with 0 if not exists
-      if (!acc[dateKey][point.credit_type_name]) {
-        acc[dateKey][point.credit_type_name] = 0;
-      }
-      acc[dateKey][point.credit_type_name] = point.transaction_count;
+      // Add data for this credit type - use debits_amount instead of transaction_count
+      acc[dateKey][point.credit_type_name] = point.debits_amount;
+      
       return acc;
     }, {} as Record<string, any>);
 
@@ -62,9 +75,16 @@ function BarChartCard() {
   // Get unique credit types
   const creditTypes = React.useMemo(() => {
     if (!creditUsageTimeSeries?.points) return [];
+    
+    // Extract all keys from the chartData that aren't 'weekday' or 'timestamp'
+    if (chartData.length > 0) {
+      return Object.keys(chartData[0]).filter(key => 
+        key !== 'weekday' && key !== 'timestamp'
+      );
+    }
+    
     return Array.from(new Set(creditUsageTimeSeries.points.map(p => p.credit_type_name)));
-  }, [creditUsageTimeSeries?.points]);
-
+  }, [creditUsageTimeSeries?.points, chartData]);
 
   return (
 
@@ -107,7 +127,7 @@ function BarChartCard() {
           </div>
         </CardHeader>
         <CardContent>
-        <div className="flex-1 w-full">
+        <div className="flex-1 w-full h-[350px]">
           {isLoadingFetchCreditUsageTimeSeries ? (
             <div className="h-full w-full flex items-center justify-center">
               <Skeleton className="h-[200px] w-full" />
@@ -119,12 +139,12 @@ function BarChartCard() {
           ) : (
             <>
               <dd className="flex w-full justify-end gap-4 text-tiny text-default-500">
-                {Array.from(new Set(chartData.map(d => d.credit_type_name))).map((category, index) => (
+                {creditTypes.map((category, index) => (
                   <div key={index} className="flex items-center gap-2">
                     <span
                       className="h-2 w-2 rounded-full"
                       style={{
-                        backgroundColor: `hsl(var(--nextui-secondary-${(index + 1) * 200}))`,
+                        backgroundColor: getColorForIndex(index),
                       }}
                     />
                     <span className="capitalize">{category}</span>
@@ -135,7 +155,7 @@ function BarChartCard() {
               <ResponsiveContainer
                 className="[&_.recharts-surface]:outline-none"
                 width="100%"
-                height="100%"
+                height={300}
               >
                 <BarChart
                   data={chartData}
@@ -171,7 +191,7 @@ function BarChartCard() {
                                 <div
                                   className="h-2 w-2 flex-none rounded-full"
                                   style={{
-                                    backgroundColor: `hsl(var(--nextui-secondary-${(index + 1) * 200}))`,
+                                    backgroundColor: getColorForIndex(index),
                                   }}
                                 />
                                 <div className="flex w-full items-center justify-between gap-x-2 pr-1 text-xs text-default-700">
@@ -191,7 +211,7 @@ function BarChartCard() {
                       key={`${category}-${index}`}
                       dataKey={category}
                       name={category}
-                      fill={`hsl(var(--nextui-secondary-${(index + 1) * 200}))`}
+                      fill={getColorForIndex(index)}
                       radius={[4, 4, 0, 0]}
                       stackId="bars"
                       barSize={24}
@@ -212,6 +232,21 @@ function BarChartCard() {
 function CircleChartCard() {
   const { creditUsage, isLoadingFetchCreditUsage, error, fetchCreditUsage } = useInsightsStore();
   const [timeRange, setTimeRange] = useState("per-day");
+
+  // Replace the NextUI color function with explicit hex colors
+  const getColorForIndex = (index: number) => {
+    const colors = [
+      "#FF6B6B", // red
+      "#4ECDC4", // teal
+      "#FFD166", // yellow
+      "#6A0572", // purple
+      "#1A936F", // green
+      "#3D5A80", // blue
+      "#F18F01", // orange
+      "#7B4B94"  // violet
+    ];
+    return colors[index % colors.length];
+  };
 
   useEffect(() => {
     const now = new Date();
@@ -288,7 +323,7 @@ function CircleChartCard() {
                           <div
                             className="h-2 w-2 flex-none rounded-full"
                             style={{
-                              backgroundColor: `hsl(var(--chart-1))`,
+                              backgroundColor: getColorForIndex(payload.findIndex((item: any) => item.name === name))
                             }}
                           />
                           <div className="flex w-full items-center justify-between gap-x-2 pr-1 text-xs text-default-700">
@@ -315,7 +350,7 @@ function CircleChartCard() {
                 {chartData.map((_, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={`hsl(var(--chart-${index + 1}))`}
+                    fill={getColorForIndex(index)}
                   />
                 ))}
               </Pie>
@@ -329,7 +364,7 @@ function CircleChartCard() {
               <span
                 className="h-2 w-2 rounded-full"
                 style={{
-                  backgroundColor: `hsl(var(--nextui-primary-${(index + 1) * 200}))`,
+                  backgroundColor: getColorForIndex(index)
                 }}
               />
               <span className="capitalize">{item.name}</span>
@@ -371,10 +406,8 @@ export function DashboardCard({ title, value, description, icon }: DashboardCard
 
 
 export default function Dashboard() {
-  const { walletActivity, trendingWallets, fetchWalletActivity, fetchTrendingWallets, generalInsights, fetchGeneralInsights } = useInsightsStore();
+  const {fetchWalletActivity, fetchTrendingWallets, generalInsights, fetchGeneralInsights } = useInsightsStore();
   const { theme } = useTheme()
-
-  // You can now check the theme like this:
   const isDarkMode = theme === "dark"
 
   useEffect(() => {
