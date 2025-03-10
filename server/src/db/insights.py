@@ -92,25 +92,25 @@ async def get_wallet_activity_aggregation(
             TransactionDBModel.wallet_id,
             Wallet.name.label("wallet_name"),
             func.count().label("total_transactions"),
-            func.count(
+            func.sum(
                 case(
                     (TransactionDBModel.type == "DEPOSIT", 1),
                     else_=0,
                 )
             ).label("total_deposits"),
-            func.count(
+            func.sum(
                 case(
                     (TransactionDBModel.type == "DEBIT", 1),
                     else_=0,
                 )
             ).label("total_debits"),
-            func.count(
+            func.sum(
                 case(
                     (TransactionDBModel.type == "HOLD", 1),
                     else_=0,
                 )
             ).label("total_holds"),
-            func.count(
+            func.sum(
                 case(
                     (TransactionDBModel.type == "ADJUST", 1),
                     else_=0,
