@@ -9,6 +9,7 @@ from sqlalchemy.sql import func
 
 Base = declarative_base()
 
+
 class OrderBy(str, Enum):
     ASC = "asc"
     DESC = "desc"
