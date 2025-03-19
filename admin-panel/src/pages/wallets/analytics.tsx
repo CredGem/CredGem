@@ -17,22 +17,23 @@ import { ActiveWalletsChart } from './active-wallets-chart';
 import { AverageTransactionsPerWalletChart } from './average-transactions-per-wallet-chart';
 import { MostActiveWallets } from './most-active-wallets';
 import { useInsightsStore } from '@/store/useInsightsStore';
+import { WalletActivityPoint } from '@/api/insightsApi';
 
 export type TimeWindow = 'day' | 'week' | 'month';
 
-const generateAverageTransactionsPerWalletData = () => {
-  return {wallets: "wallets", transactions: Math.floor(Math.random() * 1000), fill: "var(--color-safari)"}
+const generateAverageTransactionsPerWalletData = (points: WalletActivityPoint[]) => {
+  const totalTransactions = points?.reduce((sum, point) => sum + point.total_transactions, 0) || 0;
+  const totalWallets = points?.length || 0;
+  const averageTransactionsPerWallet = totalWallets > 0 ? Math.ceil(totalTransactions / totalWallets) : 0;
+  return {wallets: "wallets", transactions: averageTransactionsPerWallet, fill: "var(--color-safari)"}
 };
 
-const generateMostActiveWalletsData = () => {
-  return [
-    { wallet: uuidv4(), transactions: Math.floor(Math.random() * 1000) },
-    { wallet: uuidv4(), transactions: Math.floor(Math.random() * 1000) },
-    { wallet: uuidv4(), transactions: Math.floor(Math.random() * 1000) },
-    { wallet: uuidv4(), transactions: Math.floor(Math.random() * 1000) },
-    { wallet: uuidv4(), transactions: Math.floor(Math.random() * 1000) },
-    { wallet: uuidv4(), transactions: Math.floor(Math.random() * 1000) },
-  ]
+const generateMostActiveWalletsData = (points: WalletActivityPoint[]) => {
+  const mostActiveWallets = points?.sort((a, b) => b.total_transactions - a.total_transactions).slice(0, 5);
+  return mostActiveWallets?.map((wallet) => ({
+    wallet: wallet.wallet_name,
+    transactions: wallet.total_transactions
+  })) || [];
 };
 
 const AnalyticsCard = ({ title, data }: {
@@ -92,8 +93,8 @@ export default function WalletsAnalytics() {
     value: item.total_transactions
   })) || [];
 
-  const avgTransactionsData = generateAverageTransactionsPerWalletData();
-  const mostActiveWalletsData = generateMostActiveWalletsData();
+  const avgTransactionsData = generateAverageTransactionsPerWalletData(walletActivity?.points);
+  const mostActiveWalletsData = generateMostActiveWalletsData(walletActivity?.points);
 
   return (
     <div className="p-4 space-y-4">

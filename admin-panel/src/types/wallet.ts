@@ -87,7 +87,9 @@ export interface Transaction {
   credit_type_id: string;
   description: string;
   context: Record<string, string>;
-  external_id: string;
+  external_id: string | null;
+  hold_status?: string | null;
+  status?: string;
   payload: {
     type: "deposit" | "debit" | "adjust";
     amount: number;

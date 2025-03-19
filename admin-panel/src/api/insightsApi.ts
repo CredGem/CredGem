@@ -1,5 +1,16 @@
 import { axiosInstance } from "./axiosInstance";
 
+export interface GeneralInsightsResponse {
+  total_transactions: number;
+  total_deposits: number;
+  total_debits: number;
+  total_holds: number;
+  total_releases: number;
+  total_adjustments: number;
+  total_wallets: number;
+  total_credit_types: number;
+}
+
 export interface TimeSeriesPoint {
   timestamp: string;
   credit_type_id: string;
@@ -48,6 +59,11 @@ export interface TrendingWallet {
 }
 
 export const insightsApi = {
+  getGeneralInsights: async () => {
+    const response = await axiosInstance.get<GeneralInsightsResponse>("/insights/general");
+    return response.data;
+  },
+
   getCreditUsage: async (startDate: string, endDate: string) => {
     const response = await axiosInstance.get<CreditUsageResponse[]>("/insights/credits/usage-summary", {
       params: {

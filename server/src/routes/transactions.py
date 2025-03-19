@@ -2,7 +2,7 @@ from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from src.models.base import PaginationRequest
+from src.models.base import OrderBy, PaginationRequest
 from src.models.transactions import PaginatedTransactionResponse, TransactionResponse
 from src.services import transactions_service
 from src.utils.dependencies import (
@@ -30,6 +30,7 @@ async def list_transactions(
     context: Dict[str, str] = Depends(dict_parser("context")),
     pagination: PaginationRequest = Depends(get_pagination),
     date_range: DateTimeRange = Depends(get_datetime_range),
+    order_by: OrderBy = Query(OrderBy.DESC),
 ) -> PaginatedTransactionResponse:
     return await transactions_service.list_transactions(
         credit_type_id=credit_type_id,
@@ -38,6 +39,7 @@ async def list_transactions(
         context=context,
         pagination=pagination,
         date_range=date_range,
+        order_by=order_by,
     )
 
 

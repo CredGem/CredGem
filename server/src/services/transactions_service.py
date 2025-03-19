@@ -3,7 +3,7 @@ from typing import Dict, Optional
 from fastapi import HTTPException
 
 from src.db import transactions as transactions_db
-from src.models.base import PaginationRequest
+from src.models.base import OrderBy, PaginationRequest
 from src.models.transactions import PaginatedTransactionResponse, TransactionResponse
 from src.utils.ctx_managers import db_session
 from src.utils.dependencies import DateTimeRange
@@ -38,6 +38,7 @@ async def list_transactions(
     context: Dict[str, str],
     pagination: PaginationRequest,
     date_range: DateTimeRange,
+    order_by: OrderBy,
 ) -> PaginatedTransactionResponse:
     async with db_session() as session_ctx:
         session = session_ctx.session
@@ -49,6 +50,7 @@ async def list_transactions(
             pagination=pagination,
             context=context,
             date_range=date_range,
+            order_by=order_by,
         )
     data = [transaction.to_response() for transaction in transactions.data]
     return PaginatedTransactionResponse(

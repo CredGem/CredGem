@@ -6,12 +6,22 @@ from src.models.Insights import (
     CreditUsageResponse,
     CreditUsageTimeSeriesPoint,
     CreditUsageTimeSeriesResponse,
+    GeneralInsightsResponse,
     TimeGranularity,
     TrendingWalletAggregationResult,
     WalletActivityPoint,
     WalletActivityResponse,
 )
 from src.utils.ctx_managers import db_session
+
+
+async def get_general_insights() -> GeneralInsightsResponse:
+    """
+    Get general insights including transaction counts, deposit counts etc.
+    """
+    async with db_session() as session_ctx:
+        session = session_ctx.session
+        return await insights_db.get_general_insights(session=session)
 
 
 async def get_wallet_activity(

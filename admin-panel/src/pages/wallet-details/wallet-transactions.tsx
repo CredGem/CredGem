@@ -23,7 +23,7 @@ export function WalletTransactions({ walletId }: WalletTransactionsProps) {
         await fetchTransactions({
           wallet_id: walletId,
           page: 1,
-          page_size: 100,
+          page_size: 10,
         });
       } finally {
         setIsFirstLoad(false);
@@ -37,10 +37,15 @@ export function WalletTransactions({ walletId }: WalletTransactionsProps) {
   }
 
   return (
-    <DataTable
-      data={transactions}
-      columns={columns}
-      loadingSpinner={!isFirstLoad && isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-    />
+    <div className="space-y-4 ml-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold tracking-tight">Latest Transactions</h2>
+      </div>
+      <DataTable
+        data={transactions}
+        columns={columns}
+        loadingSpinner={!isFirstLoad && isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+      />
+    </div>
   );
 } 

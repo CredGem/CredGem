@@ -139,6 +139,7 @@ class TransactionResponse(DBModelResponse):
     subscription_id: Optional[str] = None
     hold_status: Optional[HoldStatus] = None
     wallet_id: str
+    status: TransactionStatus
 
 
 class TransactionDBModel(DBModel):
@@ -180,6 +181,7 @@ class TransactionDBModel(DBModel):
             subscription_id=self.subscription_id,
             hold_status=self.hold_status,
             wallet_id=self.wallet_id,
+            status=self.status,
         )
 
 
