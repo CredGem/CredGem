@@ -9,19 +9,35 @@ from src.models.base import PaginationRequest
 from src.models.wallets import CreateWalletRequest, UpdateWalletRequest, Wallet
 
 
-async def get_wallet(session: AsyncSession, wallet_id: str) -> Wallet | None:
+async def get_wallet(
+    session: AsyncSession, 
+    wallet_id: str,
+    tenant_id: str
+) -> Wallet | None:
     """Get a wallet by ID"""
-    return await session.get(Wallet, wallet_id)
+    return await session.get(
+        Wallet, 
+        wallet_id,
+        options=[selectinload(Wallet._balances)],
+        execution_options={"populate_existing": True},
+        with_for_update={"key_share": True},
+        filter_by={"tenant_id": tenant_id}
+    )
 
 
 async def get_wallet_with_balances(
-    session: AsyncSession, wallet_id: str
+    session: AsyncSession, 
+    wallet_id: str,
+    tenant_id: str
 ) -> Wallet | None:
     """Get a wallet by ID and join its balances"""
     query = (
         select(Wallet)
         .options(selectinload(Wallet._balances))
-        .where(Wallet.id == wallet_id)
+        .where(
+            Wallet.id == wallet_id,
+            Wallet.tenant_id == tenant_id
+        )
     )
     result = await session.execute(query)
     return result.scalar_one_or_none()
@@ -29,6 +45,7 @@ async def get_wallet_with_balances(
 
 async def get_wallets(
     session: AsyncSession,
+    tenant_id: str,
     pagination_request: PaginationRequest,
     name: Optional[str] = None,
     context: Optional[dict] = None,
@@ -40,6 +57,7 @@ async def get_wallets(
     """
 
     def apply_filters(query):
+        query = query.where(Wallet.tenant_id == tenant_id)
         if name:
             query = query.where(Wallet.name.ilike(f"%{name}%"))
         if context:
@@ -71,7 +89,10 @@ async def get_wallets(
 
 
 async def create_wallet(
-    session: AsyncSession, wallet_request: CreateWalletRequest
+    session: AsyncSession, 
+    wallet_request: CreateWalletRequest,
+    tenant_id: str,
+    user_id: str
 ) -> Wallet:
     """Create a new wallet"""
     wallet = Wallet(
@@ -79,13 +100,18 @@ async def create_wallet(
         name=wallet_request.name,
         context=wallet_request.context,
         external_id=wallet_request.external_id,
+        tenant_id=tenant_id,
+        user_id=user_id
     )
     session.add(wallet)
     return wallet
 
 
 async def update_wallet(
-    session: AsyncSession, wallet_id: str, update_wallet_request: UpdateWalletRequest
+    session: AsyncSession, 
+    wallet_id: str, 
+    update_wallet_request: UpdateWalletRequest,
+    tenant_id: str
 ) -> Optional[Wallet]:
     """Update an existing wallet
 
@@ -93,11 +119,12 @@ async def update_wallet(
         db: Database session
         wallet_id: ID of the wallet to update
         update_wallet_request: Request containing fields to update
+        tenant_id: ID of the tenant
 
     Returns:
         Updated wallet if found, None otherwise
     """
-    wallet = await session.get(Wallet, wallet_id)
+    wallet = await get_wallet(session, wallet_id, tenant_id)
     if not wallet:
         return None
 
@@ -110,7 +137,16 @@ async def update_wallet(
     return wallet
 
 
-async def delete_wallet(session: AsyncSession, wallet_id: str) -> bool:
+async def delete_wallet(
+    session: AsyncSession, 
+    wallet_id: str,
+    tenant_id: str
+) -> bool:
     """Delete a wallet"""
-    result = await session.execute(delete(Wallet).where(Wallet.id == wallet_id))
+    result = await session.execute(
+        delete(Wallet).where(
+            Wallet.id == wallet_id,
+            Wallet.tenant_id == tenant_id
+        )
+    )
     return result.rowcount > 0

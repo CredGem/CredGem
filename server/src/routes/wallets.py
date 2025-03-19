@@ -26,6 +26,7 @@ from src.services import wallets_service
 from src.utils.dependencies import dict_parser, get_pagination
 from src.utils.dependencies.transactions import TransactionContext, transaction_ctx
 from src.utils.router import APIRouter
+from src.utils.auth import AuthContext, get_auth_context
 
 router = APIRouter(
     prefix="/wallets",
@@ -39,9 +40,16 @@ router = APIRouter(
     response_model=WalletResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_wallet(wallet_data: CreateWalletRequest) -> WalletResponse:
+async def create_wallet(
+    wallet_request: CreateWalletRequest,
+    auth: AuthContext = Depends(get_auth_context)
+):
     """Create a new wallet"""
-    return await wallets_service.create_wallet(wallet_request=wallet_data)
+    return await wallets_service.create_wallet(
+        wallet_request=wallet_request,
+        tenant_id=auth.tenant_id,
+        user_id=auth.user_id
+    )
 
 
 @router.get(
@@ -50,10 +58,15 @@ async def create_wallet(wallet_data: CreateWalletRequest) -> WalletResponse:
     response_model=WalletResponse,
     status_code=status.HTTP_200_OK,
 )
-async def get_wallet(wallet_id: str) -> WalletResponse:
+async def get_wallet(
+    wallet_id: str,
+    auth: AuthContext = Depends(get_auth_context)
+):
     """Get a wallet by ID"""
-    response = await wallets_service.get_wallet_with_balances(wallet_id=wallet_id)
-    return response
+    return await wallets_service.get_wallet_by_id(
+        wallet_id=wallet_id,
+        tenant_id=auth.tenant_id
+    )
 
 
 @router.get(
@@ -63,15 +76,17 @@ async def get_wallet(wallet_id: str) -> WalletResponse:
     status_code=status.HTTP_200_OK,
 )
 async def get_wallets(
-    pagination_request: PaginationRequest = Depends(get_pagination),
-    name: Optional[str] = Query(default=None, description="Name of the wallet"),
-    context: Dict[str, str] = Depends(dict_parser("context")),
-) -> PaginatedWalletResponse:
+    pagination: PaginationRequest = Depends(),
+    name: Optional[str] = None,
+    context: Optional[Dict[str, str]] = None,
+    auth: AuthContext = Depends(get_auth_context)
+):
     """Get all wallets"""
     return await wallets_service.get_wallets(
-        pagination_request=pagination_request,
+        tenant_id=auth.tenant_id,
+        pagination_request=pagination,
         name=name,
-        context=context,
+        context=context
     )
 
 
@@ -83,13 +98,15 @@ async def get_wallets(
 )
 async def update_wallet(
     wallet_id: str,
-    wallet_data: UpdateWalletRequest,
-) -> WalletResponse:
+    wallet_request: UpdateWalletRequest,
+    auth: AuthContext = Depends(get_auth_context)
+):
     """Update an existing wallet"""
-    result = await wallets_service.update_wallet(
-        wallet_id=wallet_id, update_wallet_request=wallet_data
+    return await wallets_service.update_wallet(
+        wallet_id=wallet_id,
+        update_wallet_request=wallet_request,
+        tenant_id=auth.tenant_id
     )
-    return result
 
 
 @router.delete(
@@ -97,9 +114,15 @@ async def update_wallet(
     description="Delete a wallet",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_wallet(wallet_id: str):
+async def delete_wallet(
+    wallet_id: str,
+    auth: AuthContext = Depends(get_auth_context)
+):
     """Delete a wallet"""
-    await wallets_service.delete_wallet(wallet_id=wallet_id)
+    await wallets_service.delete_wallet(
+        wallet_id=wallet_id,
+        tenant_id=auth.tenant_id
+    )
 
 
 @router.post(

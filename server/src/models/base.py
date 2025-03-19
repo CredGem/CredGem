@@ -12,7 +12,9 @@ Base = declarative_base()
 class DBModel(Base):
     __abstract__ = True
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)  # type hint for id
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -23,6 +25,8 @@ class DBModel(Base):
 
 class DBModelResponse(BaseModel):
     id: str
+    tenant_id: str
+    user_id: str
     created_at: datetime
     updated_at: datetime
 

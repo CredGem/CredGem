@@ -18,6 +18,7 @@ async def get_wallet_activity(
     start_date: datetime,
     end_date: datetime,
     granularity: TimeGranularity,
+    tenant_id: str,
     context: Optional[Dict[str, str]] = None,
 ) -> WalletActivityResponse:
     async with db_session() as session_ctx:
@@ -27,6 +28,7 @@ async def get_wallet_activity(
             start_date=start_date,
             end_date=end_date,
             granularity=granularity,
+            tenant_id=tenant_id,
             context=context,
         )
 
@@ -57,6 +59,7 @@ async def get_wallet_activity(
 async def get_trending_wallets(
     start_date: datetime,
     end_date: datetime,
+    tenant_id: str,
     limit: int,
 ) -> List[TrendingWalletAggregationResult]:
     async with db_session() as session_ctx:
@@ -65,6 +68,7 @@ async def get_trending_wallets(
             session=session,
             start_date=start_date,
             end_date=end_date,
+            tenant_id=tenant_id,
             limit=limit,
         )
 
@@ -74,6 +78,7 @@ async def get_trending_wallets(
 async def get_credit_usage(
     start_date: datetime,
     end_date: datetime,
+    tenant_id: str,
 ) -> List[CreditUsageResponse]:
     async with db_session() as session_ctx:
         session = session_ctx.session
@@ -81,6 +86,7 @@ async def get_credit_usage(
             session=session,
             start_date=start_date,
             end_date=end_date,
+            tenant_id=tenant_id,
         )
 
     return [
@@ -98,6 +104,7 @@ async def get_credit_usage_timeseries(
     start_date: datetime,
     end_date: datetime,
     granularity: TimeGranularity,
+    tenant_id: str,
 ) -> CreditUsageTimeSeriesResponse:
     async with db_session() as session_ctx:
         session = session_ctx.session
@@ -106,6 +113,7 @@ async def get_credit_usage_timeseries(
             start_date=start_date,
             end_date=end_date,
             granularity=granularity,
+            tenant_id=tenant_id,
         )
 
     points = [

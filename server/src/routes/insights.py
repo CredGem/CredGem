@@ -1,6 +1,7 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 
 from src.models.Insights import (
     CreditUsageResponse,
@@ -10,56 +11,66 @@ from src.models.Insights import (
     WalletActivityResponse,
 )
 from src.services import insights_service
-from src.utils.dependencies import DateTimeRange, dict_parser, get_datetime_range
+from src.utils.auth import AuthContext, get_auth_context
 
-router = APIRouter(prefix="/insights")
+router = APIRouter(prefix="/insights", tags=["insights"])
 
 
-@router.get("/wallets/activity", response_model=WalletActivityResponse)
+@router.get("/wallet-activity", response_model=WalletActivityResponse)
 async def get_wallet_activity(
-    date_range: DateTimeRange = Depends(get_datetime_range),
-    granularity: TimeGranularity = TimeGranularity.DAY,
-    context: Dict[str, str] = Depends(dict_parser("context")),
-) -> WalletActivityResponse:
+    start_date: datetime,
+    end_date: datetime,
+    granularity: TimeGranularity,
+    context: Optional[Dict[str, str]] = None,
+    auth: AuthContext = Depends(get_auth_context)
+):
     return await insights_service.get_wallet_activity(
-        start_date=date_range.start_date,
-        end_date=date_range.end_date,
+        start_date=start_date,
+        end_date=end_date,
         granularity=granularity,
-        context=context,
+        tenant_id=auth.tenant_id,
+        context=context
     )
 
 
-@router.get("/wallets/trending", response_model=List[TrendingWalletAggregationResult])
+@router.get("/trending-wallets", response_model=List[TrendingWalletAggregationResult])
 async def get_trending_wallets(
-    date_range: DateTimeRange = Depends(get_datetime_range),
-    limit: int = Query(
-        default=5, description="Number of trending wallets to return", ge=1, le=100
-    ),
-) -> List[TrendingWalletAggregationResult]:
+    start_date: datetime,
+    end_date: datetime,
+    limit: int = 10,
+    auth: AuthContext = Depends(get_auth_context)
+):
     return await insights_service.get_trending_wallets(
-        start_date=date_range.start_date,
-        end_date=date_range.end_date,
-        limit=limit,
+        start_date=start_date,
+        end_date=end_date,
+        tenant_id=auth.tenant_id,
+        limit=limit
     )
 
 
-@router.get("/credits/usage-summary", response_model=List[CreditUsageResponse])
+@router.get("/credit-usage", response_model=List[CreditUsageResponse])
 async def get_credit_usage(
-    date_range: DateTimeRange = Depends(get_datetime_range),
-) -> List[CreditUsageResponse]:
+    start_date: datetime,
+    end_date: datetime,
+    auth: AuthContext = Depends(get_auth_context)
+):
     return await insights_service.get_credit_usage(
-        start_date=date_range.start_date,
-        end_date=date_range.end_date,
+        start_date=start_date,
+        end_date=end_date,
+        tenant_id=auth.tenant_id
     )
 
 
-@router.get("/credits/usage-timeseries", response_model=CreditUsageTimeSeriesResponse)
+@router.get("/credit-usage-timeseries", response_model=CreditUsageTimeSeriesResponse)
 async def get_credit_usage_timeseries(
-    date_range: DateTimeRange = Depends(get_datetime_range),
-    granularity: TimeGranularity = TimeGranularity.DAY,
-) -> CreditUsageTimeSeriesResponse:
+    start_date: datetime,
+    end_date: datetime,
+    granularity: TimeGranularity,
+    auth: AuthContext = Depends(get_auth_context)
+):
     return await insights_service.get_credit_usage_timeseries(
-        start_date=date_range.start_date,
-        end_date=date_range.end_date,
+        start_date=start_date,
+        end_date=end_date,
         granularity=granularity,
+        tenant_id=auth.tenant_id
     )

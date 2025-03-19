@@ -11,6 +11,7 @@ from src.utils.dependencies import (
     get_datetime_range,
     get_pagination,
 )
+from src.utils.auth import AuthContext, get_auth_context
 
 router = APIRouter(
     prefix="/transactions",
@@ -24,20 +25,22 @@ router = APIRouter(
     description="List transactions with optional filters",
 )
 async def list_transactions(
-    credit_type_id: Optional[str] = Query(None),
-    wallet_id: Optional[str] = Query(None),
-    external_id: Optional[str] = Query(None),
-    context: Dict[str, str] = Depends(dict_parser("context")),
-    pagination: PaginationRequest = Depends(get_pagination),
-    date_range: DateTimeRange = Depends(get_datetime_range),
+    wallet_id: Optional[str] = None,
+    credit_type_id: Optional[str] = None,
+    external_id: Optional[str] = None,
+    context: Dict[str, str] = {},
+    pagination: PaginationRequest = Depends(),
+    date_range: DateTimeRange = Depends(),
+    auth: AuthContext = Depends(get_auth_context)
 ) -> PaginatedTransactionResponse:
     return await transactions_service.list_transactions(
-        credit_type_id=credit_type_id,
+        tenant_id=auth.tenant_id,
         wallet_id=wallet_id,
+        credit_type_id=credit_type_id,
         external_id=external_id,
         context=context,
         pagination=pagination,
-        date_range=date_range,
+        date_range=date_range
     )
 
 
@@ -46,5 +49,11 @@ async def list_transactions(
     response_model=TransactionResponse,
     description="Get details of a specific transaction",
 )
-async def get_transaction(transaction_id: str) -> TransactionResponse:
-    return await transactions_service.get_transaction(transaction_id)
+async def get_transaction(
+    transaction_id: str,
+    auth: AuthContext = Depends(get_auth_context)
+) -> TransactionResponse:
+    return await transactions_service.get_transaction(
+        transaction_id=transaction_id,
+        tenant_id=auth.tenant_id
+    )

@@ -21,6 +21,8 @@ async def create_transaction(
     db: AsyncSession,
     wallet_id: str,
     transaction_request: TransactionRequestBase,
+    tenant_id: str,
+    user_id: str,
 ) -> TransactionDBModel:
     subscription_id = None
     if isinstance(transaction_request, SubscriptionDepositRequest):
@@ -42,6 +44,8 @@ async def create_transaction(
         hold_status=hold_status,
         status=TransactionStatus.PENDING,
         subscription_id=subscription_id,
+        tenant_id=tenant_id,
+        user_id=user_id
     )
     db.add(transaction)
     return transaction
@@ -50,11 +54,13 @@ async def create_transaction(
 async def get_transaction(
     session: AsyncSession,
     transaction_id: str,
+    tenant_id: str,
     transaction_type: Optional[TransactionType] = None,
     credit_type_id: Optional[str] = None,
 ) -> TransactionDBModel | None:
     query = select(TransactionDBModel).where(
         TransactionDBModel.id == transaction_id,
+        TransactionDBModel.tenant_id == tenant_id
     )
     if transaction_type:
         query = query.where(TransactionDBModel.type == transaction_type)
@@ -67,6 +73,7 @@ async def get_transaction(
 async def update_transaction(
     session: AsyncSession,
     transaction_id: str,
+    tenant_id: str,
     status: TransactionStatus | None = None,
     hold_status: HoldStatus | None = None,
     balance_snapshot: dict | None = None,
@@ -81,7 +88,10 @@ async def update_transaction(
 
     result = await session.execute(
         update(TransactionDBModel)
-        .where(TransactionDBModel.id == transaction_id)
+        .where(
+            TransactionDBModel.id == transaction_id,
+            TransactionDBModel.tenant_id == tenant_id
+        )
         .values(**update_values)
         .returning(TransactionDBModel)
     )
@@ -90,6 +100,7 @@ async def update_transaction(
 
 async def list_transactions(
     session: AsyncSession,
+    tenant_id: str,
     wallet_id: Optional[str],
     credit_type_id: Optional[str],
     external_id: Optional[str],
@@ -98,7 +109,7 @@ async def list_transactions(
     date_range: DateTimeRange,
 ) -> PaginatedTransactionDBModel:
     # Base query for both total count and paginated results
-    query = select(TransactionDBModel)
+    query = select(TransactionDBModel).where(TransactionDBModel.tenant_id == tenant_id)
     if wallet_id:
         query = query.where(TransactionDBModel.wallet_id == wallet_id)
     if credit_type_id:
@@ -135,8 +146,12 @@ async def list_transactions(
 async def get_transaction_by_external_id(
     session: AsyncSession,
     external_id: str,
+    tenant_id: str,
 ) -> TransactionDBModel | None:
     result = await session.execute(
-        select(TransactionDBModel).where(TransactionDBModel.external_id == external_id)
+        select(TransactionDBModel).where(
+            TransactionDBModel.external_id == external_id,
+            TransactionDBModel.tenant_id == tenant_id
+        )
     )
     return result.scalar_one_or_none()

@@ -61,11 +61,13 @@ from src.utils.transactions import run_managed_transaction
 logger = getLogger(__name__)
 
 
-async def get_wallet_by_id(wallet_id: str) -> WalletResponse:
+async def get_wallet_by_id(wallet_id: str, tenant_id: str) -> WalletResponse:
     """Get a wallet by ID"""
     async with db_session(read_only=True) as session_ctx:
         wallet = await wallets.get_wallet(
-            session=session_ctx.session, wallet_id=wallet_id
+            session=session_ctx.session, 
+            wallet_id=wallet_id,
+            tenant_id=tenant_id
         )
         if not wallet:
             raise HTTPException(
@@ -75,11 +77,13 @@ async def get_wallet_by_id(wallet_id: str) -> WalletResponse:
     return wallet.to_response()
 
 
-async def get_wallet_with_balances(wallet_id: str) -> WalletResponse:
+async def get_wallet_with_balances(wallet_id: str, tenant_id: str) -> WalletResponse:
     """Get a wallet by ID and join its balances"""
     async with db_session(read_only=True) as session_ctx:
         wallet = await wallets.get_wallet_with_balances(
-            session=session_ctx.session, wallet_id=wallet_id
+            session=session_ctx.session, 
+            wallet_id=wallet_id,
+            tenant_id=tenant_id
         )
         if not wallet:
             raise HTTPException(
@@ -90,6 +94,7 @@ async def get_wallet_with_balances(wallet_id: str) -> WalletResponse:
 
 
 async def get_wallets(
+    tenant_id: str,
     pagination_request: PaginationRequest,
     name: Optional[str] = None,
     context: Optional[dict] = None,
@@ -98,6 +103,7 @@ async def get_wallets(
     async with db_session(read_only=True) as session_ctx:
         wallet_list, total_count = await wallets.get_wallets(
             session=session_ctx.session,
+            tenant_id=tenant_id,
             pagination_request=pagination_request,
             name=name,
             context=context,
@@ -110,12 +116,19 @@ async def get_wallets(
     )
 
 
-async def create_wallet(wallet_request: CreateWalletRequest) -> WalletResponse:
+async def create_wallet(
+    wallet_request: CreateWalletRequest,
+    tenant_id: str,
+    user_id: str
+) -> WalletResponse:
     """Create a new wallet"""
     try:
         async with db_session() as session_ctx:
             wallet = await wallets.create_wallet(
-                session=session_ctx.session, wallet_request=wallet_request
+                session=session_ctx.session, 
+                wallet_request=wallet_request,
+                tenant_id=tenant_id,
+                user_id=user_id
             )
             session_ctx.add_to_refresh([wallet])
     except IntegrityError as e:
@@ -134,7 +147,9 @@ async def create_wallet(wallet_request: CreateWalletRequest) -> WalletResponse:
 
 
 async def update_wallet(
-    wallet_id: str, update_wallet_request: UpdateWalletRequest
+    wallet_id: str, 
+    update_wallet_request: UpdateWalletRequest,
+    tenant_id: str
 ) -> WalletResponse:
     """Update an existing wallet"""
     async with db_session() as session_ctx:
@@ -142,6 +157,7 @@ async def update_wallet(
             session=session_ctx.session,
             wallet_id=wallet_id,
             update_wallet_request=update_wallet_request,
+            tenant_id=tenant_id
         )
         if not wallet:
             raise HTTPException(
@@ -151,12 +167,13 @@ async def update_wallet(
     return wallet.to_response()
 
 
-async def delete_wallet(wallet_id: str) -> None:
+async def delete_wallet(wallet_id: str, tenant_id: str) -> None:
     """Delete a wallet"""
     async with db_session() as session_ctx:
         wallet = await wallets.delete_wallet(
             session=session_ctx.session,
             wallet_id=wallet_id,
+            tenant_id=tenant_id
         )
         if not wallet:
             raise HTTPException(
@@ -174,6 +191,8 @@ async def _deposit_transaction_handler(
         wallet_id=pending_transaction.wallet_id,
         credit_type_id=pending_transaction.credit_type_id,
         amount=pending_transaction.payload["amount"],
+        tenant_id=pending_transaction.tenant_id,
+        user_id=pending_transaction.user_id
     )
     balance_snapshot = BalanceSnapshot(
         available=updated_balance.available,
@@ -186,17 +205,23 @@ async def _deposit_transaction_handler(
         transaction_id=pending_transaction.id,
         balance_snapshot=balance_snapshot.model_dump(),
         status=TransactionStatus.COMPLETED,
+        tenant_id=pending_transaction.tenant_id
     )
     return updated_transaction
 
 
 async def create_deposit_transaction(
-    wallet_id: str, transaction_request: DepositTransactionRequest
+    wallet_id: str, 
+    transaction_request: DepositTransactionRequest,
+    tenant_id: str,
+    user_id: str
 ) -> TransactionResponse:
     transaction_result = await run_managed_transaction(
         wallet_id=wallet_id,
         transaction_request=transaction_request,
         transaction_handler=_deposit_transaction_handler,
+        tenant_id=tenant_id,
+        user_id=user_id
     )
     return transaction_result.to_response()
 

@@ -15,10 +15,11 @@ from src.models.Insights import (
 
 
 async def get_wallet_activity_aggregation(
-    session: AsyncSession,  # Add session parameter
+    session: AsyncSession,
     start_date: datetime,
     end_date: datetime,
     granularity: TimeGranularity,
+    tenant_id: str,
     context: Optional[Dict[str, str]] = None,
 ) -> List[WalletActivityAggregationResult]:
     date_grouping = get_date_grouping_by_granularity(granularity)
@@ -65,6 +66,7 @@ async def get_wallet_activity_aggregation(
         .where(
             and_(
                 TransactionDBModel.created_at.between(start_date, end_date),
+                TransactionDBModel.tenant_id == tenant_id,
                 *(
                     TransactionDBModel.context[key].as_string() == value
                     for key, value in (context or {}).items()
@@ -83,6 +85,7 @@ async def get_trending_wallets(
     session: AsyncSession,
     start_date: datetime,
     end_date: datetime,
+    tenant_id: str,
     limit: int,
 ) -> List[TrendingWalletAggregationResult]:
     query = (
@@ -93,7 +96,12 @@ async def get_trending_wallets(
         )
         .select_from(TransactionDBModel)
         .join(Wallet, Wallet.id == TransactionDBModel.wallet_id)
-        .where(and_(TransactionDBModel.created_at.between(start_date, end_date)))
+        .where(
+            and_(
+                TransactionDBModel.created_at.between(start_date, end_date),
+                TransactionDBModel.tenant_id == tenant_id
+            )
+        )
         .group_by(TransactionDBModel.wallet_id, Wallet.name)
         .order_by(desc("transaction_count"), TransactionDBModel.wallet_id)
         .limit(limit)
@@ -107,6 +115,7 @@ async def get_credit_usage_aggregation(
     session: AsyncSession,
     start_date: datetime,
     end_date: datetime,
+    tenant_id: str,
 ) -> List[CreditUsageAggregationResult]:
     """
     SQLAlchemy version of credit usage aggregation
@@ -135,6 +144,7 @@ async def get_credit_usage_aggregation(
             and_(
                 TransactionDBModel.type == "DEBIT",
                 TransactionDBModel.created_at.between(start_date, end_date),
+                TransactionDBModel.tenant_id == tenant_id
             )
         )
         .group_by(TransactionDBModel.credit_type_id, CreditType.name)
@@ -150,6 +160,7 @@ async def get_credit_usage_timeseries_aggregation(
     start_date: datetime,
     end_date: datetime,
     granularity: TimeGranularity,
+    tenant_id: str,
 ) -> List[CreditUsageTimeSeriesAggregationResult]:
     date_grouping = get_date_grouping_by_granularity(granularity)
 
@@ -175,7 +186,10 @@ async def get_credit_usage_timeseries_aggregation(
         .select_from(TransactionDBModel)
         .outerjoin(CreditType, CreditType.id == TransactionDBModel.credit_type_id)
         .where(
-            TransactionDBModel.created_at.between(start_date, end_date),
+            and_(
+                TransactionDBModel.created_at.between(start_date, end_date),
+                TransactionDBModel.tenant_id == tenant_id
+            )
         )
         .group_by(date_grouping, TransactionDBModel.credit_type_id, CreditType.name)
         .order_by(date_grouping, TransactionDBModel.credit_type_id)

@@ -8,7 +8,7 @@ from src.models.products import (
     UpdateProductRequest,
 )
 from src.services import products_service
-from src.utils.dependencies import get_pagination
+from src.utils.auth import AuthContext, get_auth_context
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -21,8 +21,13 @@ router = APIRouter(prefix="/products", tags=["products"])
 )
 async def create_product(
     request: CreateProductRequest,
+    auth: AuthContext = Depends(get_auth_context)
 ) -> ProductResponse:
-    return await products_service.create_product_handler(request=request)
+    return await products_service.create_product_handler(
+        request=request,
+        tenant_id=auth.tenant_id,
+        user_id=auth.user_id
+    )
 
 
 @router.get(
@@ -31,10 +36,12 @@ async def create_product(
     description="Get all products",
 )
 async def get_products(
-    pagination_request: PaginationRequest = Depends(get_pagination),
+    pagination: PaginationRequest = Depends(),
+    auth: AuthContext = Depends(get_auth_context)
 ) -> PaginatedProductResponse:
     return await products_service.get_products_handler(
-        pagination_request=pagination_request,
+        pagination_request=pagination,
+        tenant_id=auth.tenant_id
     )
 
 
@@ -43,8 +50,14 @@ async def get_products(
     response_model=ProductResponse,
     description="Get a product by its ID",
 )
-async def get_product(product_id: str) -> ProductResponse:
-    return await products_service.get_product_handler(product_id=product_id)
+async def get_product(
+    product_id: str,
+    auth: AuthContext = Depends(get_auth_context)
+) -> ProductResponse:
+    return await products_service.get_product_handler(
+        product_id=product_id,
+        tenant_id=auth.tenant_id
+    )
 
 
 @router.put(
@@ -53,8 +66,12 @@ async def get_product(product_id: str) -> ProductResponse:
     description="Update a product by its ID",
 )
 async def update_product(
-    product_id: str, request: UpdateProductRequest
+    product_id: str,
+    request: UpdateProductRequest,
+    auth: AuthContext = Depends(get_auth_context)
 ) -> ProductResponse:
     return await products_service.update_product_handler(
-        product_id=product_id, request=request
+        product_id=product_id,
+        request=request,
+        tenant_id=auth.tenant_id
     )

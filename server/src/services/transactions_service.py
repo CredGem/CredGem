@@ -9,11 +9,13 @@ from src.utils.ctx_managers import db_session
 from src.utils.dependencies import DateTimeRange
 
 
-async def get_transaction(transaction_id: str) -> TransactionResponse:
+async def get_transaction(transaction_id: str, tenant_id: str) -> TransactionResponse:
     async with db_session() as session_ctx:
         session = session_ctx.session
         transaction = await transactions_db.get_transaction(
-            session=session, transaction_id=transaction_id
+            session=session, 
+            transaction_id=transaction_id,
+            tenant_id=tenant_id
         )
         if not transaction:
             raise HTTPException(status_code=404, detail="Transaction not found")
@@ -22,16 +24,20 @@ async def get_transaction(transaction_id: str) -> TransactionResponse:
 
 async def get_transaction_by_external_id(
     external_id: str,
+    tenant_id: str,
 ) -> TransactionResponse | None:
     async with db_session() as session_ctx:
         session = session_ctx.session
         transaction = await transactions_db.get_transaction_by_external_id(
-            session=session, external_id=external_id
+            session=session, 
+            external_id=external_id,
+            tenant_id=tenant_id
         )
     return transaction.to_response() if transaction else None
 
 
 async def list_transactions(
+    tenant_id: str,
     wallet_id: Optional[str],
     credit_type_id: Optional[str],
     external_id: Optional[str],
@@ -43,6 +49,7 @@ async def list_transactions(
         session = session_ctx.session
         transactions = await transactions_db.list_transactions(
             session=session,
+            tenant_id=tenant_id,
             wallet_id=wallet_id,
             credit_type_id=credit_type_id,
             external_id=external_id,
